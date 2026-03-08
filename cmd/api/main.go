@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"laundryin/internal/database"
 	handler "laundryin/internal/delivery/http"
@@ -32,11 +33,19 @@ func main() {
 
 	// Usecase layer
 	authUsecase := usecase.NewAuthUsecase(userRepo)
-
-	// Handler layer
 	authHandler := handler.NewAuthHandler(authUsecase)
 
+	// Phase 3: Outlets
+	outletRepo := repository.NewOutletRepository(db)
+	outletUsecase := usecase.NewOutletUsecase(outletRepo)
+	outletHandler := handler.NewOutletHandler(outletUsecase)
+
 	// === Router Setup ===
+	// Set Gin mode
+	if mode := os.Getenv("GIN_MODE"); mode != "" {
+		gin.SetMode(mode)
+	}
+
 	r := gin.Default()
 
 	// Health check
@@ -48,18 +57,26 @@ func main() {
 	v1 := r.Group("/api/v1")
 	v1.Use(handler.PayloadLimit(1024 * 1024)) // Limit paylod to 1MB
 	{
+		// Auth routes
 		auth := v1.Group("/auth")
 		{
+			// Brute force protection for login & registration
+			auth.Use(handler.RateLimiter())
+
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 		}
 
-		// Protected routes (Phase 3+) — ready for future use
-		// protected := v1.Group("/")
-		// protected.Use(handler.AuthMiddleware())
-		// {
-		//     // Outlet, Service, Order routes will go here
-		// }
+		// Outlet routes (Phase 3)
+		outlets := v1.Group("/outlets")
+		outlets.Use(handler.AuthMiddleware(), handler.RoleMiddleware("owner"))
+		{
+			outlets.POST("", outletHandler.Create)
+			outlets.GET("", outletHandler.GetAll)
+			outlets.GET("/:id", outletHandler.GetByID)
+			outlets.PUT("/:id", outletHandler.Update)
+			outlets.DELETE("/:id", outletHandler.Delete)
+		}
 	}
 
 	r.Run() // defaults to :8080

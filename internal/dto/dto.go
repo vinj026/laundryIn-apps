@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 // RegisterRequest is the request body for user registration.
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required,min=2,max=100"`
@@ -19,4 +21,21 @@ type LoginRequest struct {
 type AuthResponse struct {
 	Token string      `json:"token"`
 	User  interface{} `json:"user"`
+}
+
+// OutletRequest is the request body for creating or updating an outlet.
+type OutletRequest struct {
+	Name    string `json:"name" binding:"required,min=3,max=100"`
+	Address string `json:"address" binding:"required,min=10"`
+	Phone   string `json:"phone" binding:"required,min=10,max=15,numeric"`
+}
+
+// OutletResponse is the response body for outlet operations.
+type OutletResponse struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Address   string    `json:"address"`
+	Phone     string    `json:"phone"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
