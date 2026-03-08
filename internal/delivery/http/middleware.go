@@ -1,17 +1,12 @@
 package http
 
 import (
-	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"laundryin/pkg/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ulule/limiter/v3"
-	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
-	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
 // AuthMiddleware validates JWT token from the Authorization header.
@@ -83,25 +78,4 @@ func PayloadLimit(limit int64) gin.HandlerFunc {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 		c.Next()
 	}
-}
-
-// RateLimiter creates a middleware to limit requests.
-// Configured here for 5 requests per 5 minutes for brute-force protection.
-func RateLimiter() gin.HandlerFunc {
-	// 5 requests per 5 minutes
-	rate := limiter.Rate{
-		Period: 5 * time.Minute,
-		Limit:  5,
-	}
-
-	store := memory.NewStore()
-	instance := limiter.New(store, rate)
-
-	return mgin.NewMiddleware(instance, mgin.WithLimitReachedHandler(func(c *gin.Context) {
-		utils.ErrorResponse(c, http.StatusTooManyRequests, "Terlalu banyak percobaan login, silakan coba lagi dalam 5 menit", nil)
-	}))
-}
-
-func init() {
-	log.Println("Middleware initialized")
 }

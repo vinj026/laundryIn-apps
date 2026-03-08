@@ -8,10 +8,10 @@ import (
 )
 
 type Base struct {
-	ID        uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
-	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        uuid.UUID      `gorm:"type:uuid;primary_key;" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 type User struct {
@@ -25,19 +25,22 @@ type User struct {
 }
 
 type Outlet struct {
-	Base
-	UserID   uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
-	Name     string    `gorm:"type:varchar(100);not null" json:"name"`
-	Address  string    `gorm:"type:text;not null" json:"address"`
-	Phone    string    `gorm:"type:varchar(20);not null" json:"phone"`
-	User     User      `gorm:"foreignKey:UserID" json:"-"`
-	Services []Service `gorm:"foreignKey:OutletID" json:"services,omitempty"`
+	ID        string         `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	UserID    string         `gorm:"type:uuid;not null;index" json:"user_id"`
+	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
+	Address   string         `gorm:"type:text;not null" json:"address"`
+	Phone     string         `gorm:"type:varchar(20);not null" json:"phone"`
+	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	User      User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Services  []Service      `gorm:"foreignKey:OutletID" json:"services,omitempty"`
 }
 
 type Service struct {
 	Base
 	OutletID uuid.UUID `gorm:"type:uuid;not null" json:"outlet_id"`
-	Name     string    `gorm:"type:text;not null" json:"name"`
+	Services string    `gorm:"type:text;not null" json:"services"`
 	Price    float64   `gorm:"type:numeric(12,2);not null" json:"price"`
 	Units    string    `gorm:"type:text;not null" json:"units"`
 	Outlet   Outlet    `gorm:"foreignKey:OutletID" json:"outlet,omitempty"`

@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"errors"
+	"math"
+	"strings"
 
 	"laundryin/internal/dto"
 	"laundryin/internal/repository"
@@ -12,13 +14,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrOutletNotFound is returned when the outlet is not found or not owned by the user.
+var ErrOutletNotFound = errors.New("outlet tidak ditemukan")
+
 // OutletUsecase defines the interface for outlet business logic.
 type OutletUsecase interface {
-	CreateOutlet(ctx context.Context, userID uuid.UUID, req dto.OutletRequest) (*dto.OutletResponse, error)
-	GetAllOutlets(ctx context.Context, userID uuid.UUID) ([]dto.OutletResponse, error)
-	GetOutletByID(ctx context.Context, id, userID uuid.UUID) (*dto.OutletResponse, error)
-	UpdateOutlet(ctx context.Context, id, userID uuid.UUID, req dto.OutletRequest) (*dto.OutletResponse, error)
-	DeleteOutlet(ctx context.Context, id, userID uuid.UUID) error
+	Create(ctx context.Context, userID string, req dto.OutletRequest) (*dto.OutletResponse, error)
+	GetAll(ctx context.Context, userID string, page, limit int) (*dto.PaginatedResponse, error)
+	GetByID(ctx context.Context, outletID, userID string) (*dto.OutletResponse, error)
+	Update(ctx context.Context, outletID, userID string, req dto.OutletRequest) (*dto.OutletResponse, error)
+	Delete(ctx context.Context, outletID, userID string) error
 }
 
 type outletUsecase struct {
@@ -30,8 +35,14 @@ func NewOutletUsecase(outletRepo repository.OutletRepository) OutletUsecase {
 	return &outletUsecase{outletRepo: outletRepo}
 }
 
-func (u *outletUsecase) CreateOutlet(ctx context.Context, userID uuid.UUID, req dto.OutletRequest) (*dto.OutletResponse, error) {
+func (u *outletUsecase) Create(ctx context.Context, userID string, req dto.OutletRequest) (*dto.OutletResponse, error) {
+	// Sanitize inputs
+	req.Name = sanitizeOutlet(req.Name)
+	req.Address = sanitizeOutlet(req.Address)
+	req.Phone = sanitizeOutlet(req.Phone)
+
 	outlet := &models.Outlet{
+		ID:      uuid.New().String(),
 		UserID:  userID,
 		Name:    req.Name,
 		Address: req.Address,
@@ -45,79 +56,97 @@ func (u *outletUsecase) CreateOutlet(ctx context.Context, userID uuid.UUID, req 
 	return toOutletResponse(outlet), nil
 }
 
-func (u *outletUsecase) GetAllOutlets(ctx context.Context, userID uuid.UUID) ([]dto.OutletResponse, error) {
-	outlets, err := u.outletRepo.FindAllByUserID(ctx, userID)
+func (u *outletUsecase) GetAll(ctx context.Context, userID string, page, limit int) (*dto.PaginatedResponse, error) {
+	offset := (page - 1) * limit
+
+	outlets, total, err := u.outletRepo.FindAllByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, errors.New("gagal mengambil data outlet")
 	}
 
-	responses := make([]dto.OutletResponse, 0)
-	for _, o := range outlets {
-		responses = append(responses, *toOutletResponse(&o))
+	// Always return empty array, never nil
+	responses := make([]dto.OutletResponse, 0, len(outlets))
+	for i := range outlets {
+		responses = append(responses, *toOutletResponse(&outlets[i]))
 	}
 
-	return responses, nil
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+
+	return &dto.PaginatedResponse{
+		Data:       responses,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
 
-func (u *outletUsecase) GetOutletByID(ctx context.Context, id, userID uuid.UUID) (*dto.OutletResponse, error) {
-	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, id, userID)
+func (u *outletUsecase) GetByID(ctx context.Context, outletID, userID string) (*dto.OutletResponse, error) {
+	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, outletID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("outlet tidak ditemukan atau bukan milik Anda")
+			return nil, ErrOutletNotFound
 		}
-		return nil, errors.New("terjadi kesalahan internal")
+		return nil, errors.New("gagal mengambil data outlet")
 	}
 
 	return toOutletResponse(outlet), nil
 }
 
-func (u *outletUsecase) UpdateOutlet(ctx context.Context, id, userID uuid.UUID, req dto.OutletRequest) (*dto.OutletResponse, error) {
-	// 1. Verify ownership
-	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, id, userID)
+func (u *outletUsecase) Update(ctx context.Context, outletID, userID string, req dto.OutletRequest) (*dto.OutletResponse, error) {
+	// Verify ownership first
+	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, outletID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("outlet tidak ditemukan atau bukan milik Anda")
+			return nil, ErrOutletNotFound
 		}
-		return nil, errors.New("terjadi kesalahan internal")
+		return nil, errors.New("gagal mengambil data outlet")
 	}
 
-	// 2. Update fields
-	outlet.Name = req.Name
-	outlet.Address = req.Address
-	outlet.Phone = req.Phone
+	// Sanitize and update fields
+	outlet.Name = sanitizeOutlet(req.Name)
+	outlet.Address = sanitizeOutlet(req.Address)
+	outlet.Phone = sanitizeOutlet(req.Phone)
 
 	if err := u.outletRepo.Update(ctx, outlet); err != nil {
-		return nil, errors.New("gagal memperbarui outlet")
+		return nil, errors.New("gagal mengupdate outlet")
 	}
 
 	return toOutletResponse(outlet), nil
 }
 
-func (u *outletUsecase) DeleteOutlet(ctx context.Context, id, userID uuid.UUID) error {
-	// 1. Verify ownership
-	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, id, userID)
+func (u *outletUsecase) Delete(ctx context.Context, outletID, userID string) error {
+	// Verify ownership first
+	_, err := u.outletRepo.FindByIDAndUserID(ctx, outletID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("outlet tidak ditemukan atau bukan milik Anda")
+			return ErrOutletNotFound
 		}
-		return errors.New("terjadi kesalahan internal")
+		return errors.New("gagal mengambil data outlet")
 	}
 
-	// 2. Soft delete
-	if err := u.outletRepo.Delete(ctx, outlet); err != nil {
-		return err
+	if err := u.outletRepo.Delete(ctx, outletID, userID); err != nil {
+		return errors.New("gagal menghapus outlet")
 	}
 
 	return nil
 }
 
+// toOutletResponse converts a model to a response DTO.
 func toOutletResponse(o *models.Outlet) *dto.OutletResponse {
 	return &dto.OutletResponse{
-		ID:        o.ID.String(),
+		ID:        o.ID,
 		Name:      o.Name,
 		Address:   o.Address,
 		Phone:     o.Phone,
-		CreatedAt: o.CreatedAt,
-		UpdatedAt: o.UpdatedAt,
+		CreatedAt: o.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: o.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+}
+
+// sanitizeOutlet trims whitespace and removes null bytes.
+func sanitizeOutlet(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\x00", "")
+	return s
 }

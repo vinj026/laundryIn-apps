@@ -24,18 +24,13 @@ func NewOutletHandler(outletUsecase usecase.OutletUsecase) *OutletHandler {
 	return &OutletHandler{outletUsecase: outletUsecase}
 }
 
-// Create handles creating a new outlet.
+// CreateOutlet handles creating a new outlet.
 // POST /api/v1/outlets
-func (h *OutletHandler) Create(c *gin.Context) {
-	// 5-second timeout for creation
+func (h *OutletHandler) CreateOutlet(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	userID, err := getUserIDFromContext(c)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Sesi tidak valid", nil)
-		return
-	}
+	userID := c.MustGet("user_id").(string)
 
 	var req dto.OutletRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -43,82 +38,86 @@ func (h *OutletHandler) Create(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.outletUsecase.CreateOutlet(ctx, userID, req)
+	resp, err := h.outletUsecase.Create(ctx, userID, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
 		return
 	}
 
 	utils.SuccessResponse(c, http.StatusCreated, resp)
 }
 
-// GetAll handles fetching all outlets belonging to the authenticated owner.
-// GET /api/v1/outlets
-func (h *OutletHandler) GetAll(c *gin.Context) {
+// GetAllOutlets handles getting all outlets for the authenticated owner.
+// GET /api/v1/outlets?page=1&limit=10
+func (h *OutletHandler) GetAllOutlets(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	userID, err := getUserIDFromContext(c)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Sesi tidak valid", nil)
-		return
+	userID := c.MustGet("user_id").(string)
+
+	var pagination dto.PaginationQuery
+	if err := c.ShouldBindQuery(&pagination); err != nil {
+		pagination.Page = 1
+		pagination.Limit = 10
 	}
 
-	resp, err := h.outletUsecase.GetAllOutlets(ctx, userID)
+	resp, err := h.outletUsecase.GetAll(ctx, userID, pagination.Page, pagination.Limit)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		if errors.Is(err, context.DeadlineExceeded) {
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
 		return
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, resp)
 }
 
-// GetByID handles fetching a single outlet by its ID.
+// GetOutletByID handles getting a specific outlet by ID.
 // GET /api/v1/outlets/:id
-func (h *OutletHandler) GetByID(c *gin.Context) {
+func (h *OutletHandler) GetOutletByID(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "ID outlet tidak valid", nil)
+	userID := c.MustGet("user_id").(string)
+	outletID := c.Param("id")
+
+	// Validate UUID format
+	if _, err := uuid.Parse(outletID); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format ID tidak valid", nil)
 		return
 	}
 
-	userID, err := getUserIDFromContext(c)
+	resp, err := h.outletUsecase.GetByID(ctx, outletID, userID)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Sesi tidak valid", nil)
-		return
-	}
-
-	resp, err := h.outletUsecase.GetOutletByID(ctx, id, userID)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, err.Error(), nil)
+		if errors.Is(err, usecase.ErrOutletNotFound) {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
 		return
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, resp)
 }
 
-// Update handles updating an existing outlet.
+// UpdateOutlet handles updating an outlet.
 // PUT /api/v1/outlets/:id
-func (h *OutletHandler) Update(c *gin.Context) {
+func (h *OutletHandler) UpdateOutlet(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "ID outlet tidak valid", nil)
-		return
-	}
+	userID := c.MustGet("user_id").(string)
+	outletID := c.Param("id")
 
-	userID, err := getUserIDFromContext(c)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Sesi tidak valid", nil)
+	// Validate UUID format
+	if _, err := uuid.Parse(outletID); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format ID tidak valid", nil)
 		return
 	}
 
@@ -128,52 +127,43 @@ func (h *OutletHandler) Update(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.outletUsecase.UpdateOutlet(ctx, id, userID, req)
+	resp, err := h.outletUsecase.Update(ctx, outletID, userID, req)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		if errors.Is(err, usecase.ErrOutletNotFound) {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
 		return
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, resp)
 }
 
-// Delete handles soft deleting an outlet.
+// DeleteOutlet handles soft-deleting an outlet.
 // DELETE /api/v1/outlets/:id
-func (h *OutletHandler) Delete(c *gin.Context) {
+func (h *OutletHandler) DeleteOutlet(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "ID outlet tidak valid", nil)
+	userID := c.MustGet("user_id").(string)
+	outletID := c.Param("id")
+
+	// Validate UUID format
+	if _, err := uuid.Parse(outletID); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format ID tidak valid", nil)
 		return
 	}
 
-	userID, err := getUserIDFromContext(c)
+	err := h.outletUsecase.Delete(ctx, outletID, userID)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Sesi tidak valid", nil)
-		return
-	}
-
-	if err := h.outletUsecase.DeleteOutlet(ctx, id, userID); err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		if errors.Is(err, usecase.ErrOutletNotFound) {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
 		return
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "Outlet berhasil dihapus"})
-}
-
-// getUserIDFromContext extracts and parses user_id from Gin context.
-func getUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
-	idStr, exists := c.Get("user_id")
-	if !exists {
-		return uuid.Nil, errors.New("user_id not found")
-	}
-
-	id, err := uuid.Parse(idStr.(string))
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	return id, nil
 }
