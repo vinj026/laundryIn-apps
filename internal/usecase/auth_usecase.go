@@ -1,7 +1,10 @@
 package usecase
 
 import (
+	"context"
 	"errors"
+	"regexp"
+	"strings"
 
 	"laundryin/internal/dto"
 	"laundryin/internal/repository"
@@ -14,8 +17,8 @@ import (
 
 // AuthUsecase defines the interface for authentication business logic.
 type AuthUsecase interface {
-	Register(req dto.RegisterRequest) (*dto.AuthResponse, error)
-	Login(req dto.LoginRequest) (*dto.AuthResponse, error)
+	Register(ctx context.Context, req dto.RegisterRequest) (*dto.AuthResponse, error)
+	Login(ctx context.Context, req dto.LoginRequest) (*dto.AuthResponse, error)
 }
 
 type authUsecase struct {
@@ -33,9 +36,27 @@ var ErrDuplicatePhone = errors.New("nomor HP sudah terdaftar")
 // ErrInvalidCredentials is a generic error for failed login (anti user enumeration).
 var ErrInvalidCredentials = errors.New("nomor HP atau password salah")
 
-func (u *authUsecase) Register(req dto.RegisterRequest) (*dto.AuthResponse, error) {
+// ErrWeakPassword is returned when the password doesn't meet complexity requirements.
+var ErrWeakPassword = errors.New("password harus mengandung setidaknya satu huruf besar, satu huruf kecil, dan satu angka")
+
+func (u *authUsecase) Register(ctx context.Context, req dto.RegisterRequest) (*dto.AuthResponse, error) {
+	// Sanitize inputs
+	req.Name = sanitize(req.Name)
+	req.Phone = sanitize(req.Phone)
+	req.Email = sanitize(req.Email)
+
+	// Password complexity check
+	// Must contain at least one uppercase, one lowercase, and one digit
+	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(req.Password)
+	hasLower := regexp.MustCompile(`[a-z]`).MatchString(req.Password)
+	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(req.Password)
+
+	if !hasUpper || !hasLower || !hasDigit {
+		return nil, ErrWeakPassword
+	}
+
 	// Check for duplicate phone number
-	existingUser, _ := u.userRepo.FindByPhone(req.Phone)
+	existingUser, _ := u.userRepo.FindByPhone(ctx, req.Phone)
 	if existingUser != nil {
 		return nil, ErrDuplicatePhone
 	}
@@ -58,7 +79,7 @@ func (u *authUsecase) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 		Role:     req.Role,
 	}
 
-	if err := u.userRepo.Create(user); err != nil {
+	if err := u.userRepo.Create(ctx, user); err != nil {
 		return nil, errors.New("gagal mendaftarkan user")
 	}
 
@@ -74,9 +95,13 @@ func (u *authUsecase) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 	}, nil
 }
 
-func (u *authUsecase) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
+func (u *authUsecase) Login(ctx context.Context, req dto.LoginRequest) (*dto.AuthResponse, error) {
+	// Sanitize phone
+	req.Phone = sanitize(req.Phone)
+
 	// Find user by phone
-	user, err := u.userRepo.FindByPhone(req.Phone)
+	user, err := u.userRepo.FindByPhone(ctx, req.Phone)
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Generic error: don't reveal that the user doesn't exist
@@ -101,4 +126,11 @@ func (u *authUsecase) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 		Token: token,
 		User:  user, // Password excluded via json:"-"
 	}, nil
+}
+
+// sanitize removes leading/trailing spaces and null bytes.
+func sanitize(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\x00", "")
+	return s
 }

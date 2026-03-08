@@ -71,3 +71,11 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		c.Abort()
 	}
 }
+
+// PayloadLimit limits the size of the request body to prevent Denial of Service attacks.
+func PayloadLimit(limit int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+		c.Next()
+	}
+}

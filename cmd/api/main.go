@@ -46,6 +46,7 @@ func main() {
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
+	v1.Use(handler.PayloadLimit(1024 * 1024)) // Limit paylod to 1MB
 	{
 		auth := v1.Group("/auth")
 		{
