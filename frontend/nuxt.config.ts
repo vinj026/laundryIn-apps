@@ -1,11 +1,14 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
-  ],
+  future: {
+    compatibilityVersion: 4,
+  },
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  routeRules: {
+    '/api/**': { proxy: 'http://localhost:8080/api/**' }
+  },
   css: ['~/assets/css/main.css'],
   app: {
     head: {
