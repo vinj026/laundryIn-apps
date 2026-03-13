@@ -172,8 +172,7 @@ interface Outlet {
   phone: string
 }
 
-const { data: outletsWrapper, pending, error, refresh } = await useFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets', {
-  headers: { Authorization: authStore.authHeader },
+const { data: outletsWrapper, pending, error, refresh } = await useApiFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets', {
   server: false
 })
 const searchQuery = ref('')
@@ -291,16 +290,14 @@ const submitForm = async () => {
     }
 
     if (isEditing.value) {
-      await $fetch(`/api/outlets/${outletForm.value.id}`, {
+      await useApiRaw(`/api/outlets/${outletForm.value.id}`, {
         method: 'PUT',
-        headers: { Authorization: authStore.authHeader },
         body: payload
       })
       toastSuccess('Outlet berhasil diperbarui')
     } else {
-      await $fetch('/api/outlets', {
+      await useApiRaw('/api/outlets', {
         method: 'POST',
-        headers: { Authorization: authStore.authHeader },
         body: payload
       })
       toastSuccess('Outlet berhasil ditambahkan')
@@ -332,9 +329,8 @@ const confirmDelete = async () => {
   
   deleteLoading.value = true
   try {
-    await $fetch(`/api/outlets/${outletToDelete.value.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: authStore.authHeader }
+    await useApiRaw(`/api/outlets/${outletToDelete.value.id}`, {
+      method: 'DELETE'
     })
     toastSuccess('Outlet berhasil dihapus')
     showDeleteModal.value = false

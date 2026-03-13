@@ -210,25 +210,19 @@ const { data: analytics, pending, error, refresh } = await useAsyncData<Analytic
     const dates = getDateRange(daysFilter.value)
     const queryParams = `?start_date=${dates.start_date}&end_date=${dates.end_date}`
 
-    const [omzet, summary, topServices] = await Promise.all([
-      $fetch<ApiResponse<OmzetResponse>>(`/api/reports/omzet${queryParams}`, {
-        headers: { Authorization: authStore.authHeader }
-      }),
-      $fetch<ApiResponse<OrderStatusSummaryResponse>>(`/api/reports/orders/summary${queryParams}`, {
-        headers: { Authorization: authStore.authHeader }
-      }),
-      $fetch<ApiResponse<TopServiceResponse[]>>(`/api/reports/services/top${queryParams}`, {
-        headers: { Authorization: authStore.authHeader }
-      })
+    const [omzetRes, summaryRes, servicesRes] = await Promise.all([
+      useApiRaw<ApiResponse<OmzetResponse>>(`/api/reports/omzet${queryParams}`),
+      useApiRaw<ApiResponse<OrderStatusSummaryResponse>>(`/api/reports/orders/summary${queryParams}`),
+      useApiRaw<ApiResponse<TopServiceResponse[]>>(`/api/reports/services/top${queryParams}`)
     ])
 
     return {
-      totalRevenue: Number(omzet.data?.total_omzet || 0),
-      ordersPending: summary.data?.pending || 0,
-      ordersProcess: summary.data?.process || 0,
-      ordersCompleted: summary.data?.completed || 0,
-      ordersPickedUp: summary.data?.picked_up || 0,
-      topServices: topServices.data || []
+      totalRevenue: Number(omzetRes.data?.total_omzet || 0),
+      ordersPending: summaryRes.data?.pending || 0,
+      ordersProcess: summaryRes.data?.process || 0,
+      ordersCompleted: summaryRes.data?.completed || 0,
+      ordersPickedUp: summaryRes.data?.picked_up || 0,
+      topServices: servicesRes.data || []
     }
   },
   { watch: [daysFilter], server: false }

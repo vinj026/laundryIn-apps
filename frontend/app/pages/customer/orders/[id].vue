@@ -204,10 +204,7 @@ interface Outlet {
   phone: string
 }
 
-const { data: ordersWrapper, pending } = await useFetch<ApiResponse<PaginatedResponse<Order[]>>>(
-  '/api/orders?limit=100&page=1',
-  { headers: { Authorization: authStore.authHeader }, server: false }
-)
+const { data: ordersWrapper, pending } = await useApiFetch<ApiResponse<PaginatedResponse<Order[]>>>('/api/orders', { server: false })
 
 const order = computed(() => (ordersWrapper.value?.data?.data ?? []).find((o) => o.id === orderId) || null)
 
@@ -215,7 +212,7 @@ const { data: outletWrapper } = await useAsyncData<ApiResponse<Outlet> | null>(
   'customer-order-outlet',
   async () => {
     if (!order.value) return null
-    return $fetch(`/api/public/outlets/${order.value.outlet_id}`)
+    return useApiRaw<ApiResponse<Outlet>>(`/api/public/outlets/${order.value.outlet_id}`)
   },
   { watch: [order], server: false }
 )

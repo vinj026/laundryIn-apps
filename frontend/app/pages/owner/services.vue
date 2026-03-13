@@ -183,10 +183,7 @@ interface Outlet {
   name: string
 }
 
-const { data: outletsWrapper } = await useFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets', {
-  headers: { Authorization: authStore.authHeader },
-  server: false
-})
+const { data: outletsWrapper } = await useApiFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets')
 
 const outlets = computed(() => outletsWrapper.value?.data?.data ?? [])
 const selectedOutletId = ref('')
@@ -198,9 +195,7 @@ const { data: services, pending, refresh: refreshServices } = await useAsyncData
 
     // Specific outlet query
     if (selectedOutletId.value) {
-      const res = await $fetch<ApiResponse<Service[]>>(`/api/outlets/${selectedOutletId.value}/services`, {
-        headers: { Authorization: authStore.authHeader }
-      })
+      const res = await useApiRaw<ApiResponse<Service[]>>(`/api/outlets/${selectedOutletId.value}/services`)
       const outletName = outlets.value.find(o => o.id === selectedOutletId.value)?.name || 'Unknown'
       return (res.data || []).map(s => ({ ...s, outlet_name: outletName }))
     }
@@ -208,9 +203,7 @@ const { data: services, pending, refresh: refreshServices } = await useAsyncData
     // All outlets parallel query
     const promises = outlets.value.map(async (o) => {
       try {
-        const res = await $fetch<ApiResponse<Service[]>>(`/api/outlets/${o.id}/services`, {
-          headers: { Authorization: authStore.authHeader }
-        })
+        const res = await useApiRaw<ApiResponse<Service[]>>(`/api/outlets/${o.id}/services`)
         return (res.data || []).map(s => ({ ...s, outlet_name: o.name }))
       } catch {
         return []
@@ -315,16 +308,14 @@ const submitForm = async () => {
     if (isEditing.value) {
       // Body for PUT usually doesn't need outlet_id if it's not allowed to change
       const { outlet_id, ...editPayload } = payload
-      await $fetch(`/api/services/${serviceForm.value.id}`, {
+      await useApiRaw(`/api/services/${serviceForm.value.id}`, {
         method: 'PUT',
-        headers: { Authorization: authStore.authHeader },
         body: editPayload
       })
       toastSuccess('Service berhasil diperbarui')
     } else {
-      await $fetch('/api/services', {
+      await useApiRaw('/api/services', {
         method: 'POST',
-        headers: { Authorization: authStore.authHeader },
         body: payload
       })
       toastSuccess('Service berhasil ditambahkan')
@@ -356,9 +347,8 @@ const confirmDelete = async () => {
   
   deleteLoading.value = true
   try {
-    await $fetch(`/api/services/${serviceToDelete.value.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: authStore.authHeader }
+    await useApiRaw(`/api/services/${serviceToDelete.value.id}`, {
+      method: 'DELETE'
     })
     toastSuccess('Service berhasil dihapus')
     showDeleteModal.value = false

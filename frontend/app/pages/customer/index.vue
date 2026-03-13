@@ -119,7 +119,7 @@ interface Outlet {
   is_active: boolean
 }
 
-const { data: outletsResponse, pending, refresh } = await useFetch<{ data: { data: Outlet[] } }>('/api/public/outlets')
+const { data: outletsResponse, pending, refresh } = await useApiFetch<{ data: { data: Outlet[] } }>('/api/public/outlets')
 const searchQuery = ref('')
 
 onActivated(() => {

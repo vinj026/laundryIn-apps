@@ -331,10 +331,10 @@ const form = ref({
 
 const showOutletModal = ref(false)
 
-const { data: outletWrapper, pending: pendingOutlet, refresh: refreshOutlet } = await useFetch<{ data: Outlet }>(`/api/public/outlets/${outletId}`)
+const { data: outletWrapper, pending: pendingOutlet, refresh: refreshOutlet } = await useApiFetch<{ data: Outlet }>(`/api/public/outlets/${outletId}`)
 const outlet = computed(() => outletWrapper.value?.data)
 
-const { data: allOutletsResponse, pending: pendingAllOutlets } = await useFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/public/outlets', {
+const { data: allOutletsResponse, pending: pendingAllOutlets } = await useApiFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/public/outlets', {
   lazy: true,
   server: false
 })
@@ -349,7 +349,7 @@ const changeOutlet = (newId: string) => {
   router.push(`/customer/outlet/${newId}`)
 }
 
-const { data: services, pending: pendingServices, refresh: refreshServices } = await useFetch<{ data: Service[] }>(`/api/public/outlets/${outletId}/services`)
+const { data: services, pending: pendingServices, refresh: refreshServices } = await useApiFetch<{ data: Service[] }>(`/api/public/outlets/${outletId}/services`)
 
 onActivated(() => {
   if (outletId) {
@@ -462,19 +462,22 @@ const checkout = async () => {
   checkoutLoading.value = true
 
   try {
-    await $fetch('/api/orders', {
+    const payload = {
+      outlet_id: outletId,
+      customer_name: form.value.name.trim(),
+      customer_phone: form.value.phone.trim(),
+      customer_address: form.value.address.trim(),
+      pickup_date: form.value.date,
+      pickup_time: form.value.time,
+      notes: form.value.notes.trim(),
+      items: cartStore.items.map(i => ({
+        service_id: i.serviceId,
+        qty: i.qty.toString()
+      }))
+    }
+
+    await useApiRaw('/api/orders', {
       method: 'POST',
-      headers: {
-        Authorization: authStore.authHeader
-      },
-      body: {
-        outlet_id: outletId,
-        customer_name: form.value.name.trim(),
-        customer_phone: form.value.phone.trim(),
-        customer_address: form.value.address.trim(),
-        pickup_date: form.value.date,
-        pickup_time: form.value.time,
-        notes: form.value.notes.trim(),
         items: cartStore.items.map(i => ({
           service_id: i.serviceId,
           qty: i.qty.toString()

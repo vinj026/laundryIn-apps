@@ -145,9 +145,8 @@ const saveEdit = async () => {
   try {
     // Attempt real API call, but fallback to local update if endpoint missing
     // matching the behavior in the verified backend response logic
-    await $fetch('/api/users/me', {
+    await useApiRaw('/api/users/me', {
       method: 'PUT',
-      headers: { Authorization: authStore.authHeader },
       body: { name: nextName, phone: nextPhone }
     }).catch(err => {
       console.warn('API update failed, updating locally only:', err.message)

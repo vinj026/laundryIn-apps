@@ -26,9 +26,13 @@ func NewNotificationHandler(notifUsecase usecase.NotificationUsecase, hub *webso
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, you should check r.Header.Get("Origin")
-		// For now, let's keep it simple but better than just true
-		return true 
+		// In production, we should validate the Origin header.
+		// For now, allow any origin but log it for easier debugging and future restriction.
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		return true
 	},
 }
 

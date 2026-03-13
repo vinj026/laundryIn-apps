@@ -15,17 +15,16 @@ export const useWebSocket = () => {
     const connect = () => {
         if (!import.meta.client || !authStore.isLoggedIn || ws) return
 
-        // Base URL from runtime config or hardcoded for now
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const host = window.location.hostname === 'localhost' ? 'localhost:8080' : window.location.host
+        const config = useRuntimeConfig()
+        let wsUrl = config.public.wsBase
 
-        // We need to pass the token. Since standard WebSocket doesn't support headers easily, 
-        // we use a ticket or just protocol sub-protocol? 
-        // Actually, our backend middleware checks Authorization header. 
-        // Browser WS API doesn't support custom headers. 
-        // WORKAROUND: Pass token as query param, then middleware handles it.
-
-        const wsUrl = `${protocol}//${host}/api/v1/ws/connect?token=${authStore.token}`
+        // If it's a relative URL or placeholder, we might still want dynamic logic
+        // but for now, we just use the config. 
+        // We ensure it includes the token.
+        if (!wsUrl.includes('token=')) {
+            const separator = wsUrl.includes('?') ? '&' : '?'
+            wsUrl = `${wsUrl}${separator}token=${authStore.token}`
+        }
 
         ws = new WebSocket(wsUrl)
 

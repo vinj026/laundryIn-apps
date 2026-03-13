@@ -224,8 +224,7 @@ interface Order {
   items: OrderItem[]
 }
 
-const { data: outletsWrapper } = await useFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets', {
-  headers: { Authorization: authStore.authHeader },
+const { data: outletsWrapper } = await useApiFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/outlets', {
   server: false
 })
 
@@ -250,8 +249,8 @@ const { data: ordersWrapper, pending, error, refresh } = await useAsyncData<ApiR
     if (!selectedOutletId.value) {
       return { status: 'success', message: '', data: { data: [], page: 1, limit: 10, total: 0, total_pages: 0 } }
     }
-    return $fetch(`/api/outlets/${selectedOutletId.value}/orders`, {
-      headers: { Authorization: authStore.authHeader }
+    return useApiRaw<ApiResponse<PaginatedResponse<Order[]>>>(`/api/outlets/${selectedOutletId.value}/orders`, {
+      params: { page: ordersPage.value, limit: 10 }
     })
   },
   { watch: [selectedOutletId], server: false }
@@ -326,9 +325,8 @@ const updateStatus = async (id: string, newStatus: string) => {
       }
     }
 
-    await $fetch(`/api/orders/${id}/status`, {
+    await useApiRaw(`/api/orders/${id}/status`, {
       method: 'PATCH',
-      headers: { Authorization: authStore.authHeader },
       body
     })
     await refresh()

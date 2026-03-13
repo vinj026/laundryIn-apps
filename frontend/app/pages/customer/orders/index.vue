@@ -103,12 +103,7 @@ interface Order {
   order_date: string
 }
 
-const { data: ordersWrapper, pending, error, refresh } = await useFetch<ApiResponse<PaginatedResponse<Order[]>>>('/api/orders', {
-  headers: computed(() => ({
-    Authorization: authStore.authHeader
-  })),
-  server: false
-})
+const { data: ordersResponse, pending, error, refresh } = await useApiFetch<PaginatedResponse<Order[]>>('/api/orders')
 
 watchEffect(() => {
   if (error.value) {

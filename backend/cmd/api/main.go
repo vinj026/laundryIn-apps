@@ -61,6 +61,7 @@ func main() {
 	r := gin.Default()
 
 	// Global security middleware
+	r.Use(handler.CORSMiddleware())
 	r.Use(handler.SecurityHeaders())
 
 	// Health check

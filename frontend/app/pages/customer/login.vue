@@ -125,7 +125,7 @@ const login = async () => {
 
   loading.value = true
   try {
-    const res = await $fetch<{
+    const res = await useApiRaw<{
       status: string
       message: string
       data: { token: string, user: any }

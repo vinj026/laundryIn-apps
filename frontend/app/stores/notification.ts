@@ -48,9 +48,8 @@ export const useNotificationStore = defineStore('notification', {
 
             this.loading = true
             try {
-                const res = await $fetch<ApiResponse<any>>('/api/notifications', {
-                    params: { page, limit },
-                    headers: { Authorization: authStore.authHeader }
+                const res = await useApiRaw<ApiResponse<any>>('/api/notifications', {
+                    params: { page, limit }
                 })
 
                 // Debug log to trace data structure
@@ -89,9 +88,7 @@ export const useNotificationStore = defineStore('notification', {
             if (!authStore.isLoggedIn) return
 
             try {
-                const res = await $fetch<ApiResponse<{ count: number }>>('/api/notifications/unread-count', {
-                    headers: { Authorization: authStore.authHeader }
-                })
+                const res = await useApiRaw<ApiResponse<{ count: number }>>('/api/notifications/unread-count')
                 this.unreadCount = res.data?.count || 0
             } catch (err) {
                 console.error('Failed to fetch unread count', err)
@@ -104,9 +101,8 @@ export const useNotificationStore = defineStore('notification', {
             if (!notif || notif.is_read) return
 
             try {
-                await $fetch(`/api/notifications/${id}/read`, {
-                    method: 'PATCH',
-                    headers: { Authorization: authStore.authHeader }
+                await useApiRaw(`/api/notifications/${id}/read`, {
+                    method: 'PATCH'
                 })
                 notif.is_read = true
                 this.unreadCount = Math.max(0, this.unreadCount - 1)
@@ -118,9 +114,8 @@ export const useNotificationStore = defineStore('notification', {
         async markAllAsRead() {
             const authStore = useAuthStore()
             try {
-                await $fetch('/api/notifications/read-all', {
-                    method: 'PATCH',
-                    headers: { Authorization: authStore.authHeader }
+                await useApiRaw('/api/notifications/read-all', {
+                    method: 'PATCH'
                 })
                 this.notifications.forEach(n => n.is_read = true)
                 this.unreadCount = 0
