@@ -25,18 +25,19 @@ type OrderUsecase interface {
 }
 
 type orderUsecase struct {
-	orderRepo   repository.OrderRepository
-	serviceRepo repository.ServiceRepository
-	outletRepo  repository.OutletRepository
+	orderRepo    repository.OrderRepository
+	serviceRepo  repository.ServiceRepository
+	outletRepo   repository.OutletRepository
+	notifUsecase NotificationUsecase
 }
 
-func NewOrderUsecase(or repository.OrderRepository, sr repository.ServiceRepository, ou repository.OutletRepository) OrderUsecase {
-	return &orderUsecase{orderRepo: or, serviceRepo: sr, outletRepo: ou}
+func NewOrderUsecase(or repository.OrderRepository, sr repository.ServiceRepository, ou repository.OutletRepository, nu NotificationUsecase) OrderUsecase {
+	return &orderUsecase{orderRepo: or, serviceRepo: sr, outletRepo: ou, notifUsecase: nu}
 }
 
 func (u *orderUsecase) Create(ctx context.Context, userID string, req dto.OrderRequest) (*dto.OrderResponse, error) {
-	// 1. Anti-IDOR: Verify the target outlet exists and is owned by the current user.
-	outlet, err := u.outletRepo.FindByID(ctx, req.OutletID)
+	// 1. Verify the target outlet exists.
+	_, err := u.outletRepo.FindByID(ctx, req.OutletID)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -45,11 +46,6 @@ func (u *orderUsecase) Create(ctx context.Context, userID string, req dto.OrderR
 			return nil, errors.New("outlet tidak ditemukan")
 		}
 		return nil, errors.New("gagal memvalidasi outlet")
-	}
-
-	// Ownership check
-	if outlet.UserID != userID {
-		return nil, errors.New("akses ditolak: anda bukan pemilik outlet ini")
 	}
 
 	// 2. Deep Anti-IDOR & Zero-Trust Pricing.
@@ -116,6 +112,10 @@ func (u *orderUsecase) Create(ctx context.Context, userID string, req dto.OrderR
 	}
 
 	order.Items = items
+
+	// Fire notification in background
+	go u.notifUsecase.NotifyOrderCreated(context.Background(), order)
+
 	return toOrderResponse(order), nil
 }
 
@@ -179,6 +179,40 @@ func (u *orderUsecase) UpdateStatus(ctx context.Context, orderID, userID string,
 		return nil, ErrStateInvalid
 	}
 
+	// Handle items actual qty for 'process' state transitions
+	if req.Status == "process" {
+		reqItemsMap := make(map[string]decimal.Decimal)
+		for _, ri := range req.Items {
+			qty, err := decimal.NewFromString(ri.ActualQty)
+			if err != nil || qty.LessThanOrEqual(decimal.Zero) {
+				return nil, errors.New("berat aktual harus berupa angka positif yang valid")
+			}
+			reqItemsMap[ri.ID] = qty.Round(2)
+		}
+
+		var finalTotalPrice decimal.Decimal
+
+		for i, item := range order.Items {
+			if item.Unit == "KG" {
+				if actualQty, exists := reqItemsMap[item.ID]; exists {
+					order.Items[i].ActualQty = &actualQty
+					finalPrice := actualQty.Mul(item.ServicePrice).Round(2)
+					order.Items[i].FinalPrice = &finalPrice
+					finalTotalPrice = finalTotalPrice.Add(finalPrice)
+				} else {
+					return nil, errors.New("berat aktual wajib diisi untuk layanan per KG")
+				}
+			} else {
+				// PCS does not need actual_qty, finalPrice = Subtotal
+				finalPrice := item.Subtotal
+				order.Items[i].FinalPrice = &finalPrice
+				finalTotalPrice = finalTotalPrice.Add(finalPrice)
+			}
+		}
+
+		order.FinalTotalPrice = &finalTotalPrice
+	}
+
 	// Create Audit Log
 	logEntry := &models.OrderLog{
 		ID:        uuid.New().String(),
@@ -188,15 +222,19 @@ func (u *orderUsecase) UpdateStatus(ctx context.Context, orderID, userID string,
 		NewStatus: req.Status,
 	}
 
-	// Execute Update Transaction (Status change + Log append)
-	if err := u.orderRepo.UpdateOrderStatus(ctx, orderID, req.Status, logEntry); err != nil {
+	order.Status = req.Status
+
+	// Execute Update Transaction (Status change + Final Price update + Log append)
+	if err := u.orderRepo.UpdateOrderStatus(ctx, order, logEntry); err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 		return nil, errors.New("gagal memperbarui status")
 	}
 
-	order.Status = req.Status
+	// Fire notification in background
+	go u.notifUsecase.NotifyStatusChanged(context.Background(), order, logEntry.OldStatus, req.Status)
+
 	return toOrderResponse(order), nil
 }
 
@@ -227,14 +265,25 @@ func toOrderResponseList(orders []models.Order) []dto.OrderResponse {
 func toOrderResponse(o *models.Order) *dto.OrderResponse {
 	itemsResp := make([]dto.OrderItemResponse, 0, len(o.Items))
 	for _, it := range o.Items {
-		itemsResp = append(itemsResp, dto.OrderItemResponse{
+		item := dto.OrderItemResponse{
 			ID:           it.ID,
 			ServiceName:  it.ServiceName,
 			ServicePrice: it.ServicePrice.StringFixed(2),
 			Qty:          it.Qty.StringFixed(2),
 			Unit:         it.Unit,
 			Subtotal:     it.Subtotal.StringFixed(2),
-		})
+		}
+
+		if it.ActualQty != nil {
+			aq := it.ActualQty.StringFixed(2)
+			item.ActualQty = &aq
+		}
+		if it.FinalPrice != nil {
+			fp := it.FinalPrice.StringFixed(2)
+			item.FinalPrice = &fp
+		}
+		
+		itemsResp = append(itemsResp, item)
 	}
 
 	logsResp := make([]dto.OrderLogResponse, 0, len(o.Logs))
@@ -247,14 +296,22 @@ func toOrderResponse(o *models.Order) *dto.OrderResponse {
 		})
 	}
 
-	return &dto.OrderResponse{
-		ID:         o.ID,
-		UserID:     o.UserID,
-		OutletID:   o.OutletID,
-		TotalPrice: o.TotalPrice.StringFixed(2),
-		Status:     o.Status,
-		OrderDate:  o.OrderDate.Format("2006-01-02T15:04:05Z07:00"),
-		Items:      itemsResp,
-		Logs:       logsResp,
+	resp := &dto.OrderResponse{
+		ID:           o.ID,
+		UserID:       o.UserID,
+		CustomerName: o.User.Name,
+		OutletID:     o.OutletID,
+		TotalPrice:   o.TotalPrice.StringFixed(2),
+		Status:       o.Status,
+		OrderDate:    o.OrderDate.Format("2006-01-02T15:04:05Z07:00"),
+		Items:        itemsResp,
+		Logs:         logsResp,
 	}
+
+	if o.FinalTotalPrice != nil {
+		ftp := o.FinalTotalPrice.StringFixed(2)
+		resp.FinalTotalPrice = &ftp
+	}
+
+	return resp
 }

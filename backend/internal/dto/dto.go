@@ -104,17 +104,25 @@ type OrderRequest struct {
 
 // OrderStatusRequest for advancing the FSM.
 type OrderStatusRequest struct {
-	Status string `json:"status" binding:"required,oneof=pending process completed picked_up cancelled"`
+	Status string          `json:"status" binding:"required,oneof=pending process completed picked_up cancelled"`
+	Items  []ActualQtyItem `json:"items,omitempty"`
+}
+
+type ActualQtyItem struct {
+	ID        string `json:"id" binding:"required,uuid"`
+	ActualQty string `json:"actual_qty" binding:"required"`
 }
 
 // OrderItemResponse — all financial fields are strings (decimal precision).
 type OrderItemResponse struct {
-	ID           string `json:"id"`
-	ServiceName  string `json:"service_name"`
-	ServicePrice string `json:"service_price"`
-	Qty          string `json:"qty"`
-	Unit         string `json:"unit"`
-	Subtotal     string `json:"subtotal"`
+	ID           string  `json:"id"`
+	ServiceName  string  `json:"service_name"`
+	ServicePrice string  `json:"service_price"`
+	Qty          string  `json:"qty"`
+	ActualQty    *string `json:"actual_qty,omitempty"`
+	Unit         string  `json:"unit"`
+	Subtotal     string  `json:"subtotal"`
+	FinalPrice   *string `json:"final_price,omitempty"`
 }
 
 type OrderLogResponse struct {
@@ -126,12 +134,30 @@ type OrderLogResponse struct {
 
 // OrderResponse — TotalPrice is string (decimal precision).
 type OrderResponse struct {
-	ID         string              `json:"id"`
-	UserID     string              `json:"user_id"`
-	OutletID   string              `json:"outlet_id"`
-	TotalPrice string              `json:"total_price"`
-	Status     string              `json:"status"`
-	OrderDate  string              `json:"order_date"`
-	Items      []OrderItemResponse `json:"items,omitempty"`
-	Logs       []OrderLogResponse  `json:"logs,omitempty"`
+	ID              string              `json:"id"`
+	UserID          string              `json:"user_id"`
+	CustomerName    string              `json:"customer_name,omitempty"`
+	OutletID        string              `json:"outlet_id"`
+	TotalPrice      string              `json:"total_price"`
+	FinalTotalPrice *string             `json:"final_total_price,omitempty"`
+	Status          string              `json:"status"`
+	OrderDate       string              `json:"order_date"`
+	Items           []OrderItemResponse `json:"items,omitempty"`
+	Logs            []OrderLogResponse  `json:"logs,omitempty"`
+}
+
+// === Notification DTOs ===
+
+type NotificationResponse struct {
+	ID        string      `json:"id"`
+	Type      string      `json:"type"`
+	Title     string      `json:"title"`
+	Body      string      `json:"body"`
+	Data      interface{} `json:"data"`
+	IsRead    bool        `json:"is_read"`
+	CreatedAt string      `json:"created_at"`
+}
+
+type UnreadCountResponse struct {
+	Count int64 `json:"count"`
 }

@@ -12,6 +12,7 @@ import (
 type ServiceRepository interface {
 	Create(ctx context.Context, service *models.Service) error
 	FindAllByOutletID(ctx context.Context, outletID, userID string) ([]models.Service, error)
+	FindAllByOutletIDPublic(ctx context.Context, outletID string) ([]models.Service, error)
 	FindByIDAndOwner(ctx context.Context, serviceID, userID string) (*models.Service, error)
 	FindByIDAndOutletID(ctx context.Context, serviceID, outletID string) (*models.Service, error)
 	Update(ctx context.Context, service *models.Service) error
@@ -37,6 +38,14 @@ func (r *serviceRepository) FindAllByOutletID(ctx context.Context, outletID, use
 	err := r.db.WithContext(ctx).
 		Joins("JOIN outlets ON outlets.id = services.outlet_id").
 		Where("services.outlet_id = ? AND outlets.user_id = ?", outletID, userID).
+		Find(&services).Error
+	return services, err
+}
+
+func (r *serviceRepository) FindAllByOutletIDPublic(ctx context.Context, outletID string) ([]models.Service, error) {
+	var services []models.Service
+	err := r.db.WithContext(ctx).
+		Where("outlet_id = ?", outletID).
 		Find(&services).Error
 	return services, err
 }

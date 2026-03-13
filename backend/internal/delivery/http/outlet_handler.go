@@ -187,3 +187,67 @@ func (h *OutletHandler) DeleteOutlet(c *gin.Context) {
 
 	utils.SuccessResponse(c, http.StatusOK, "Outlet berhasil dihapus", nil)
 }
+
+// GetAllOutletsPublic handles getting all outlets without auth.
+// GET /api/v1/public/outlets?page=1&limit=10
+func (h *OutletHandler) GetAllOutletsPublic(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	var pagination dto.PaginationQuery
+	if err := c.ShouldBindQuery(&pagination); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format pagination tidak valid (maksimal limit 100)", nil)
+		return
+	}
+
+	// Ensure defaults if missing
+	if pagination.Page == 0 {
+		pagination.Page = 1
+	}
+	if pagination.Limit == 0 {
+		pagination.Limit = 10
+	}
+
+	resp, err := h.outletUsecase.GetAllPublic(ctx, pagination.Page, pagination.Limit)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Daftar outlet public berhasil diambil", resp)
+}
+
+// GetOutletByIDPublic handles getting a specific outlet by ID without auth.
+// GET /api/v1/public/outlets/:id
+func (h *OutletHandler) GetOutletByIDPublic(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	outletID := c.Param("id")
+
+	// Validate UUID format
+	if _, err := uuid.Parse(outletID); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format ID tidak valid", nil)
+		return
+	}
+
+	resp, err := h.outletUsecase.GetByIDPublic(ctx, outletID)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			return
+		}
+		if errors.Is(err, usecase.ErrOutletNotFound) {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Data outlet public berhasil diambil", resp)
+}

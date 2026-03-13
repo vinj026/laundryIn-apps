@@ -38,13 +38,13 @@ type OrderStatusRow struct {
 
 // Build base query with dynamic filters (StartDate, EndDate, OutletID)
 // Table prefix is applied for disambiguation when JOINs are involved.
-func (r *reportRepository) buildBaseQuery(ctx context.Context, query *gorm.DB, userID string, tablePrefix string, req dto.ReportQuery) *gorm.DB {
+func (r *reportRepository) buildBaseQuery(ctx context.Context, query *gorm.DB, ownerID string, tablePrefix string, req dto.ReportQuery) *gorm.DB {
 	prefix := ""
 	if tablePrefix != "" {
 		prefix = tablePrefix + "."
 	}
 
-	q := query.Where(prefix+"user_id = ?", userID)
+	q := query.Where("outlets.user_id = ?", ownerID)
 
 	if req.OutletID != "" {
 		q = q.Where(prefix+"outlet_id = ?", req.OutletID)
@@ -64,11 +64,11 @@ func (r *reportRepository) buildBaseQuery(ctx context.Context, query *gorm.DB, u
 func (r *reportRepository) GetTotalOmzet(ctx context.Context, userID string, req dto.ReportQuery) (decimal.Decimal, error) {
 	var total decimal.Decimal
 
-	db := r.db.WithContext(ctx).Table("orders")
-	q := r.buildBaseQuery(ctx, db, userID, "", req)
+	db := r.db.WithContext(ctx).Table("orders").Joins("JOIN outlets ON outlets.id = orders.outlet_id")
+	q := r.buildBaseQuery(ctx, db, userID, "orders", req)
 
-	err := q.Where("status != ?", "cancelled").
-		Select("COALESCE(SUM(total_price), 0)").
+	err := q.Where("orders.status != ?", "cancelled").
+		Select("COALESCE(SUM(orders.total_price), 0)").
 		Scan(&total).Error
 
 	return total, err
@@ -77,11 +77,11 @@ func (r *reportRepository) GetTotalOmzet(ctx context.Context, userID string, req
 func (r *reportRepository) GetOrderStatusSummary(ctx context.Context, userID string, req dto.ReportQuery) (map[string]int64, error) {
 	var rows []OrderStatusRow
 
-	db := r.db.WithContext(ctx).Table("orders")
-	q := r.buildBaseQuery(ctx, db, userID, "", req)
+	db := r.db.WithContext(ctx).Table("orders").Joins("JOIN outlets ON outlets.id = orders.outlet_id")
+	q := r.buildBaseQuery(ctx, db, userID, "orders", req)
 
-	err := q.Select("status, COUNT(id) as count").
-		Group("status").
+	err := q.Select("orders.status, COUNT(orders.id) as count").
+		Group("orders.status").
 		Scan(&rows).Error
 
 	if err != nil {
@@ -101,14 +101,14 @@ func (r *reportRepository) GetTopServices(ctx context.Context, userID string, re
 
 	db := r.db.WithContext(ctx).Table("order_items oi")
 	query := db.Joins("JOIN orders ord ON ord.id = oi.order_id").
-		Joins("JOIN outlets o ON o.id = ord.outlet_id")
+		Joins("JOIN outlets outlets ON outlets.id = ord.outlet_id")
 
 	// Apply filtering to "ord"
 	q := r.buildBaseQuery(ctx, query, userID, "ord", req)
 
 	err := q.Where("ord.status != ?", "cancelled").
-		Select("oi.service_name, o.name as outlet_name, SUM(oi.qty) as total_qty, SUM(oi.subtotal) as total_revenue").
-		Group("oi.service_name, o.name").
+		Select("oi.service_name, outlets.name as outlet_name, SUM(oi.qty) as total_qty, SUM(oi.subtotal) as total_revenue").
+		Group("oi.service_name, outlets.name").
 		Order("total_revenue DESC").
 		Limit(5).
 		Scan(&rows).Error

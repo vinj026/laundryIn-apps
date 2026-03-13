@@ -49,15 +49,16 @@ type Service struct {
 
 type Order struct {
 	Base
-	UserID     string          `gorm:"type:uuid;not null;index" json:"user_id"`
-	OutletID   string          `gorm:"type:uuid;not null;index" json:"outlet_id"`
-	TotalPrice decimal.Decimal `gorm:"type:numeric(12,2);not null" json:"total_price"`
-	Status     string          `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	OrderDate  time.Time       `gorm:"autoCreateTime" json:"order_date"`
-	Items      []OrderItem     `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"items"`
-	Logs       []OrderLog      `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"logs,omitempty"`
-	User       User            `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Outlet     Outlet          `gorm:"foreignKey:OutletID" json:"outlet,omitempty"`
+	UserID          string          `gorm:"type:uuid;not null;index" json:"user_id"`
+	OutletID        string          `gorm:"type:uuid;not null;index" json:"outlet_id"`
+	TotalPrice      decimal.Decimal `gorm:"type:numeric(12,2);not null" json:"total_price"`
+	FinalTotalPrice *decimal.Decimal `gorm:"type:numeric(12,2)" json:"final_total_price"`
+	Status          string          `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	OrderDate       time.Time       `gorm:"autoCreateTime" json:"order_date"`
+	Items           []OrderItem     `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"items"`
+	Logs            []OrderLog      `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"logs,omitempty"`
+	User            User            `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Outlet          Outlet          `gorm:"foreignKey:OutletID" json:"outlet,omitempty"`
 }
 
 type OrderItem struct {
@@ -66,8 +67,10 @@ type OrderItem struct {
 	ServiceName  string          `gorm:"type:varchar(100);not null" json:"service_name"`
 	ServicePrice decimal.Decimal `gorm:"type:numeric(10,2);not null" json:"service_price"`
 	Qty          decimal.Decimal `gorm:"type:numeric(6,2);not null" json:"qty"`
+	ActualQty    *decimal.Decimal `gorm:"type:numeric(6,2)" json:"actual_qty"`
 	Unit         string          `gorm:"type:varchar(20);not null" json:"unit"`
 	Subtotal     decimal.Decimal `gorm:"type:numeric(12,2);not null" json:"subtotal"`
+	FinalPrice   *decimal.Decimal `gorm:"type:numeric(12,2)" json:"final_price"`
 }
 
 type OrderLog struct {
@@ -78,4 +81,15 @@ type OrderLog struct {
 	NewStatus string    `gorm:"type:varchar(20);not null" json:"new_status"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
 	User      User      `gorm:"foreignKey:UpdatedBy" json:"user,omitempty"`
+}
+
+type Notification struct {
+	ID        string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type      string    `gorm:"type:varchar(50);not null" json:"type"`
+	Title     string    `gorm:"type:varchar(200);not null" json:"title"`
+	Body      string    `gorm:"type:varchar(500);not null" json:"body"`
+	Data      string    `gorm:"type:jsonb" json:"data"`
+	IsRead    bool      `gorm:"default:false" json:"is_read"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
 }

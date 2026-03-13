@@ -11,6 +11,7 @@ import (
 // OutletRepository defines the interface for outlet database operations.
 type OutletRepository interface {
 	Create(ctx context.Context, outlet *models.Outlet) error
+	FindAll(ctx context.Context, limit, offset int) ([]models.Outlet, int64, error)
 	FindAllByUserID(ctx context.Context, userID string, limit, offset int) ([]models.Outlet, int64, error)
 	FindByID(ctx context.Context, outletID string) (*models.Outlet, error)
 	FindByIDAndUserID(ctx context.Context, outletID, userID string) (*models.Outlet, error)
@@ -29,6 +30,21 @@ func NewOutletRepository(db *gorm.DB) OutletRepository {
 
 func (r *outletRepository) Create(ctx context.Context, outlet *models.Outlet) error {
 	return r.db.WithContext(ctx).Create(outlet).Error
+}
+
+func (r *outletRepository) FindAll(ctx context.Context, limit, offset int) ([]models.Outlet, int64, error) {
+	var outlets []models.Outlet
+	var total int64
+
+	if err := r.db.WithContext(ctx).Model(&models.Outlet{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := r.db.WithContext(ctx).Order("created_at DESC").Limit(limit).Offset(offset).Find(&outlets).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return outlets, total, nil
 }
 
 func (r *outletRepository) FindAllByUserID(ctx context.Context, userID string, limit, offset int) ([]models.Outlet, int64, error) {

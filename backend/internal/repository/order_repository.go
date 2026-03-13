@@ -21,8 +21,8 @@ type OrderRepository interface {
 	// FindByIDAndOwner fetches a specific order, verifying via JOIN that the caller owns the outlet
 	FindByIDAndOwner(ctx context.Context, orderID, userID string) (*models.Order, error)
 
-	// UpdateOrderStatus updates the order status and simultaneously saves an OrderLog atomically
-	UpdateOrderStatus(ctx context.Context, orderID, newStatus string, logEntry *models.OrderLog) error
+	// UpdateOrderStatus updates the order status and optionally the final prices, simultaneously saving an OrderLog atomically
+	UpdateOrderStatus(ctx context.Context, order *models.Order, logEntry *models.OrderLog) error
 }
 
 type orderRepository struct {
@@ -65,6 +65,7 @@ func (r *orderRepository) FindAllByUserID(ctx context.Context, userID string, li
 
 	err := modelDB.
 		Preload("Items").
+		Preload("User").
 		Order("order_date DESC").
 		Limit(limit).
 		Offset(offset).
@@ -87,6 +88,7 @@ func (r *orderRepository) FindAllByOutletIDAndOwner(ctx context.Context, outletI
 
 	err := modelDB.
 		Preload("Items").
+		Preload("User").
 		Order("orders.order_date DESC").
 		Limit(limit).
 		Offset(offset).
@@ -101,6 +103,7 @@ func (r *orderRepository) FindByIDAndOwner(ctx context.Context, orderID, userID 
 	err := r.db.WithContext(ctx).
 		Joins("JOIN outlets ON outlets.id = orders.outlet_id").
 		Preload("Items").
+		Preload("User").
 		Where("orders.id = ? AND outlets.user_id = ?", orderID, userID).
 		First(&order).Error
 
@@ -110,14 +113,30 @@ func (r *orderRepository) FindByIDAndOwner(ctx context.Context, orderID, userID 
 	return &order, nil
 }
 
-func (r *orderRepository) UpdateOrderStatus(ctx context.Context, orderID, newStatus string, logEntry *models.OrderLog) error {
+func (r *orderRepository) UpdateOrderStatus(ctx context.Context, order *models.Order, logEntry *models.OrderLog) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Update order status; IDs are now plain strings, no uuid.Parse needed
-		if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", newStatus).Error; err != nil {
+		updates := map[string]interface{}{
+			"status": order.Status,
+		}
+		if order.FinalTotalPrice != nil {
+			updates["final_total_price"] = order.FinalTotalPrice
+		}
+		
+		if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Updates(updates).Error; err != nil {
 			return err
 		}
 
-		// Store Who Changed It via OrderLog
+		for _, item := range order.Items {
+			if item.ActualQty != nil {
+				if err := tx.Model(&models.OrderItem{}).Where("id = ?", item.ID).Updates(map[string]interface{}{
+					"actual_qty":  item.ActualQty,
+					"final_price": item.FinalPrice,
+				}).Error; err != nil {
+					return err
+				}
+			}
+		}
+
 		if err := tx.Create(logEntry).Error; err != nil {
 			return err
 		}

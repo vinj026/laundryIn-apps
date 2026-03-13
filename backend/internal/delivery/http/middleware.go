@@ -18,6 +18,14 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			// Fallback to query param for WebSockets
+			authHeader = c.Query("token")
+			if authHeader != "" {
+				authHeader = "Bearer " + authHeader
+			}
+		}
+
+		if authHeader == "" {
 			utils.ErrorResponse(c, http.StatusUnauthorized, "Token tidak ditemukan", nil)
 			c.Abort()
 			return

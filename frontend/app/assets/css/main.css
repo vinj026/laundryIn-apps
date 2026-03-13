@@ -2,8 +2,202 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────
+   BASE LAYER
+   ────────────────────────────── */
 @layer base {
-  body {
-    @apply antialiased font-sans text-gray-900 bg-gray-50;
+  html {
+    @apply scroll-smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+  body {
+    @apply bg-surface text-surface-onSurface font-sans;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Focus visible ring — accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-surface;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/20;
+    color: theme('colors.primary.light');
+  }
+}
+
+/* ──────────────────────────────
+   COMPONENT LAYER
+   ────────────────────────────── */
+@layer components {
+
+  /* ── Global Scrollbar ── */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ── Hide Scrollbar ── */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* ── M3 Floating Label Fields ── */
+  .m3-field {
+    @apply relative;
+  }
+
+  .m3-field input,
+  .m3-field textarea,
+  .m3-field select {
+    @apply bg-surface-container border border-border text-surface-onSurface rounded-xl px-4 py-3.5 w-full transition-all duration-normal appearance-none text-sm;
+  }
+
+  .m3-field input:disabled {
+    @apply bg-surface-raised text-surface-onSurfaceVariant cursor-not-allowed opacity-60;
+  }
+
+  .m3-field input:focus,
+  .m3-field textarea:focus,
+  .m3-field select:focus {
+    @apply border-primary ring-1 ring-primary/30 outline-none;
+  }
+
+  .m3-field label {
+    @apply absolute left-4 top-3.5 text-surface-onSurfaceVariant pointer-events-none transition-all duration-normal text-sm;
+    background-color: transparent;
+  }
+
+  .m3-field input:focus~label,
+  .m3-field input:not(:placeholder-shown)~label,
+  .m3-field textarea:focus~label,
+  .m3-field textarea:not(:placeholder-shown)~label,
+  .m3-field select:focus~label,
+  .m3-field select:not(:placeholder-shown)~label,
+  .m3-field select:valid~label {
+    @apply -top-2.5 left-3 text-xs text-primary px-1.5;
+    background-color: #161616;
+    /* matches surface-container */
+  }
+
+  /* ── Chip Radio Buttons ── */
+  .chip-radio:checked+label {
+    @apply bg-primary/10 border-primary text-primary;
+  }
+
+  .chip-radio:checked+label span.icon {
+    font-variation-settings: 'FILL' 1;
+  }
+
+  /* ── Status Badges ── */
+  .badge {
+    @apply text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider inline-flex items-center gap-1;
+  }
+
+  .badge-pending {
+    @apply bg-surface-containerHigh text-surface-onSurfaceVariant;
+  }
+
+  .badge-process {
+    @apply bg-primary/15 text-primary;
+  }
+
+  .badge-completed {
+    @apply bg-success-muted text-success;
+  }
+
+  .badge-picked-up {
+    @apply bg-surface-containerHigh/50 text-surface-onSurfaceVariant opacity-60;
+  }
+
+  .badge-live {
+    @apply bg-danger-muted text-danger border border-danger/30;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply bg-primary text-primary-text font-semibold rounded-xl px-5 py-3 transition-all duration-normal hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-containerHigh text-surface-onSurface font-semibold rounded-xl px-5 py-3 border border-border transition-all duration-normal hover:bg-surface-overlay active:scale-[0.98] flex items-center justify-center gap-2;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-surface-onSurfaceVariant font-medium rounded-xl px-4 py-2.5 transition-all duration-normal hover:bg-surface-containerHigh hover:text-surface-onSurface flex items-center justify-center gap-2;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-surface-onSurface font-semibold rounded-xl px-5 py-3 transition-all duration-normal hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-surface-container rounded-2xl border border-border p-5 transition-all duration-normal;
+  }
+
+  .card-hover {
+    @apply hover:border-border-hover hover:shadow-lg hover:shadow-black/20;
+  }
+
+  .card-interactive {
+    @apply card card-hover cursor-pointer hover:-translate-y-0.5;
+  }
+}
+
+/* ──────────────────────────────
+   UTILITY LAYER
+   ────────────────────────────── */
+@layer utilities {
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent;
+  }
+
+  .glass {
+    @apply bg-surface-container/80 backdrop-blur-xl border border-border;
+  }
+}
+
+/* ──────────────────────────────
+   PAGE TRANSITIONS
+   ────────────────────────────── */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+}
+
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ──────────────────────────────
+   MATERIAL SYMBOLS CONFIG
+   ────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

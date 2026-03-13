@@ -1,0 +1,21 @@
+# Nuxt dependencies/build outputs (handled by frontend/.gitignore if git is nested, but better safe here too)
+node_modules/
+.nuxt/
+.output/
+dist/
+
+# Backend binaries and logs
+backend/api
+backend/bin/
+backend/*.log
+backend/out.log
+
+# Environment variables
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# OS files
+.DS_Store
+Thumbs.db

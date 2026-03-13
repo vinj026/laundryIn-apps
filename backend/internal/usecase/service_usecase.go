@@ -21,6 +21,7 @@ var ErrServiceNotFound = errors.New("layanan tidak ditemukan atau akses ditolak"
 type ServiceUsecase interface {
 	Create(ctx context.Context, userID string, req dto.ServiceRequest) (*dto.ServiceResponse, error)
 	GetAllByOutletID(ctx context.Context, outletID, userID string) ([]dto.ServiceResponse, error)
+	GetAllByOutletIDPublic(ctx context.Context, outletID string) ([]dto.ServiceResponse, error)
 	Update(ctx context.Context, serviceID, userID string, req dto.ServiceRequest) (*dto.ServiceResponse, error)
 	Delete(ctx context.Context, serviceID, userID string) error
 }
@@ -81,6 +82,24 @@ func (u *serviceUsecase) Create(ctx context.Context, userID string, req dto.Serv
 
 func (u *serviceUsecase) GetAllByOutletID(ctx context.Context, outletID, userID string) ([]dto.ServiceResponse, error) {
 	services, err := u.serviceRepo.FindAllByOutletID(ctx, outletID, userID)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, errors.New("gagal mengambil daftar layanan")
+	}
+
+	// Always return empty array instead of nil
+	responses := make([]dto.ServiceResponse, 0, len(services))
+	for i := range services {
+		responses = append(responses, *toServiceResponse(&services[i]))
+	}
+
+	return responses, nil
+}
+
+func (u *serviceUsecase) GetAllByOutletIDPublic(ctx context.Context, outletID string) ([]dto.ServiceResponse, error) {
+	services, err := u.serviceRepo.FindAllByOutletIDPublic(ctx, outletID)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

@@ -8,6 +8,7 @@ import (
 	"laundryin/internal/repository"
 	"laundryin/internal/repository/models"
 	"laundryin/internal/usecase"
+	"laundryin/internal/websocket"
 	"laundryin/pkg/utils"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,11 @@ func main() {
 	db := database.ConnectDB()
 
 	// Auto-migrate models
-	db.AutoMigrate(&models.User{}, &models.Outlet{}, &models.Service{}, &models.Order{}, &models.OrderItem{}, &models.OrderLog{})
+	db.AutoMigrate(&models.User{}, &models.Outlet{}, &models.Service{}, &models.Order{}, &models.OrderItem{}, &models.OrderLog{}, &models.Notification{})
+
+	// Initialize WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
 
 	// === Dependency Injection ===
 	// Repository layer
@@ -37,12 +42,14 @@ func main() {
 	serviceRepo := repository.NewServiceRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
 	reportRepo := repository.NewReportRepository(db)
+	notifRepo := repository.NewNotificationRepository(db)
 
 	// Usecase layer
 	authUsecase := usecase.NewAuthUsecase(userRepo)
 	outletUsecase := usecase.NewOutletUsecase(outletRepo)
 	serviceUsecase := usecase.NewServiceUsecase(serviceRepo, outletRepo)
-	orderUsecase := usecase.NewOrderUsecase(orderRepo, serviceRepo, outletRepo)
+	notifUsecase := usecase.NewNotificationUsecase(notifRepo, userRepo, outletRepo, hub)
+	orderUsecase := usecase.NewOrderUsecase(orderRepo, serviceRepo, outletRepo, notifUsecase)
 	reportUsecase := usecase.NewReportUsecase(reportRepo)
 
 	// Handler layer
@@ -51,6 +58,7 @@ func main() {
 	serviceHandler := handler.NewServiceHandler(serviceUsecase)
 	orderHandler := handler.NewOrderHandler(orderUsecase)
 	reportHandler := handler.NewReportHandler(reportUsecase)
+	notifHandler := handler.NewNotificationHandler(notifUsecase, hub)
 
 	// === Router Setup ===
 	r := gin.Default()
@@ -74,34 +82,61 @@ func main() {
 			auth.POST("/login", authHandler.Login)
 		}
 
-		// Protected routes — Owner only
-		protected := v1.Group("")
-		protected.Use(handler.AuthMiddleware(), handler.RoleMiddleware("owner"))
+		public := v1.Group("/public")
+		{
+			public.GET("/outlets", outletHandler.GetAllOutletsPublic)
+			public.GET("/outlets/:id", outletHandler.GetOutletByIDPublic)
+			public.GET("/outlets/:id/services", serviceHandler.GetAllByOutletIDPublic)
+		}
+
+		// Protected routes — Customer
+		customer := v1.Group("")
+		customer.Use(handler.AuthMiddleware(), handler.RoleMiddleware("customer"))
+		{
+			// Orders (Customer)
+			customer.POST("/orders", orderHandler.CreateOrder)
+			customer.GET("/orders", orderHandler.GetAllByUserID)
+		}
+
+		// Protected routes — Owner
+		owner := v1.Group("")
+		owner.Use(handler.AuthMiddleware(), handler.RoleMiddleware("owner"))
 		{
 			// Outlets
-			protected.POST("/outlets", outletHandler.CreateOutlet)
-			protected.GET("/outlets", outletHandler.GetAllOutlets)
-			protected.GET("/outlets/:id", outletHandler.GetOutletByID)
-			protected.PUT("/outlets/:id", outletHandler.UpdateOutlet)
-			protected.DELETE("/outlets/:id", outletHandler.DeleteOutlet)
+			owner.POST("/outlets", outletHandler.CreateOutlet)
+			owner.GET("/outlets", outletHandler.GetAllOutlets)
+			owner.GET("/outlets/:id", outletHandler.GetOutletByID)
+			owner.PUT("/outlets/:id", outletHandler.UpdateOutlet)
+			owner.DELETE("/outlets/:id", outletHandler.DeleteOutlet)
 
 			// Services
-			protected.POST("/services", serviceHandler.CreateService)
-			protected.GET("/outlets/:id/services", serviceHandler.GetAllByOutletID)
-			protected.PUT("/services/:id", serviceHandler.UpdateService)
-			protected.DELETE("/services/:id", serviceHandler.DeleteService)
+			owner.POST("/services", serviceHandler.CreateService)
+			owner.GET("/outlets/:id/services", serviceHandler.GetAllByOutletID)
+			owner.PUT("/services/:id", serviceHandler.UpdateService)
+			owner.DELETE("/services/:id", serviceHandler.DeleteService)
 
-			// Orders (Owner specific)
-			protected.POST("/orders", orderHandler.CreateOrder)
-			protected.GET("/orders", orderHandler.GetAllByUserID)
-			protected.GET("/outlets/:id/orders", orderHandler.GetAllByOutletID)
-			protected.PATCH("/orders/:id/status", orderHandler.UpdateStatus)
+			// Orders (Owner)
+			owner.GET("/outlets/:id/orders", orderHandler.GetAllByOutletID)
+			owner.PATCH("/orders/:id/status", orderHandler.UpdateStatus)
 
 			// Reports & Analytics
-			protected.GET("/reports/omzet", reportHandler.GetOmzet)
-			protected.GET("/reports/orders/summary", reportHandler.GetOrderSummary)
-			protected.GET("/reports/services/top", reportHandler.GetTopServices)
+			owner.GET("/reports/omzet", reportHandler.GetOmzet)
+			owner.GET("/reports/orders/summary", reportHandler.GetOrderSummary)
+			owner.GET("/reports/services/top", reportHandler.GetTopServices)
 		}
+
+		// Notifications (Both roles)
+		authorized := v1.Group("/notifications")
+		authorized.Use(handler.AuthMiddleware())
+		{
+			authorized.GET("", notifHandler.GetNotifications)
+			authorized.GET("/unread-count", notifHandler.GetUnreadCount)
+			authorized.PATCH("/:id/read", notifHandler.MarkAsRead)
+			authorized.PATCH("/read-all", notifHandler.MarkAllAsRead)
+		}
+
+		// WebSocket
+		v1.GET("/ws/connect", handler.AuthMiddleware(), notifHandler.Connect)
 	}
 
 	r.Run() // defaults to :8080

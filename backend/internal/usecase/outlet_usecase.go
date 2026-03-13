@@ -21,7 +21,9 @@ var ErrOutletNotFound = errors.New("outlet tidak ditemukan")
 type OutletUsecase interface {
 	Create(ctx context.Context, userID string, req dto.OutletRequest) (*dto.OutletResponse, error)
 	GetAll(ctx context.Context, userID string, page, limit int) (*dto.PaginatedResponse, error)
+	GetAllPublic(ctx context.Context, page, limit int) (*dto.PaginatedResponse, error)
 	GetByID(ctx context.Context, outletID, userID string) (*dto.OutletResponse, error)
+	GetByIDPublic(ctx context.Context, outletID string) (*dto.OutletResponse, error)
 	Update(ctx context.Context, outletID, userID string, req dto.OutletRequest) (*dto.OutletResponse, error)
 	Delete(ctx context.Context, outletID, userID string) error
 }
@@ -61,6 +63,34 @@ func (u *outletUsecase) Create(ctx context.Context, userID string, req dto.Outle
 	return toOutletResponse(outlet), nil
 }
 
+func (u *outletUsecase) GetAllPublic(ctx context.Context, page, limit int) (*dto.PaginatedResponse, error) {
+	offset := (page - 1) * limit
+
+	outlets, total, err := u.outletRepo.FindAll(ctx, limit, offset)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, errors.New("gagal mengambil data outlet")
+	}
+
+	// Always return empty array, never nil
+	responses := make([]dto.OutletResponse, 0, len(outlets))
+	for i := range outlets {
+		responses = append(responses, *toOutletResponse(&outlets[i]))
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+
+	return &dto.PaginatedResponse{
+		Data:       responses,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
 func (u *outletUsecase) GetAll(ctx context.Context, userID string, page, limit int) (*dto.PaginatedResponse, error) {
 	offset := (page - 1) * limit
 
@@ -91,6 +121,21 @@ func (u *outletUsecase) GetAll(ctx context.Context, userID string, page, limit i
 
 func (u *outletUsecase) GetByID(ctx context.Context, outletID, userID string) (*dto.OutletResponse, error) {
 	outlet, err := u.outletRepo.FindByIDAndUserID(ctx, outletID, userID)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrOutletNotFound
+		}
+		return nil, errors.New("gagal mengambil data outlet")
+	}
+
+	return toOutletResponse(outlet), nil
+}
+
+func (u *outletUsecase) GetByIDPublic(ctx context.Context, outletID string) (*dto.OutletResponse, error) {
+	outlet, err := u.outletRepo.FindByID(ctx, outletID)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

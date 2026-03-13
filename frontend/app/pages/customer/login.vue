@@ -12,10 +12,10 @@
       <!-- Brand -->
       <div class="mb-8 text-center">
         <div class="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto border border-primary/20 mb-4">
-          <span class="material-symbols-outlined text-[36px]">admin_panel_settings</span>
+          <span class="material-symbols-outlined text-[36px]">local_laundry_service</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight mb-1">Welcome back</h1>
-        <p class="text-surface-onSurfaceVariant text-sm">Sign in to your owner dashboard.</p>
+        <p class="text-surface-onSurfaceVariant text-sm">Sign in to your account.</p>
       </div>
 
       <!-- Form -->
@@ -44,10 +44,6 @@
             </span>
           </button>
         </div>
-
-        <div class="flex justify-end pt-1">
-          <button type="button" class="text-xs font-medium text-primary hover:underline">Forgot password?</button>
-        </div>
       </form>
 
       <!-- Actions -->
@@ -63,9 +59,12 @@
             <span class="material-symbols-outlined text-lg">arrow_forward</span>
           </template>
         </button>
-        <button class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors">
+        <NuxtLink
+          to="/customer/register"
+          class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors text-center"
+        >
           Don't have an account? <span class="text-primary font-semibold">Register</span>
-        </button>
+        </NuxtLink>
       </div>
     </div>
   </div>
@@ -75,7 +74,7 @@
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 
-useHead({ title: 'LaundryIn — Owner Login' })
+useHead({ title: 'LaundryIn — Customer Login' })
 definePageMeta({ layout: false })
 
 const authStore = useAuthStore()
@@ -87,11 +86,11 @@ const router = useRouter()
 // Guard: Redirect if already logged in
 watchEffect(() => {
   if (import.meta.client && authStore.isLoggedIn) {
-    if (authStore.user?.role === 'customer') {
-      toastError('Kamu sudah login sebagai customer, silakan logout terlebih dahulu')
-      router.push('/customer')
-    } else if (authStore.user?.role === 'owner') {
+    if (authStore.user?.role === 'owner') {
+      toastError('Kamu sudah login sebagai owner, silakan logout terlebih dahulu')
       router.push('/owner')
+    } else if (authStore.user?.role === 'customer') {
+      router.push('/customer')
     }
   }
 })
@@ -103,6 +102,10 @@ const form = ref({
 const showPassword = ref(false)
 const loading = ref(false)
 
+const redirectTo = computed(() =>
+  (route.query.redirect as string) || '/customer'
+)
+
 const formattedPhone = computed(() => {
   const p = form.value.phone.trim()
   if (p.startsWith('0')) return '+62' + p.slice(1)
@@ -111,11 +114,16 @@ const formattedPhone = computed(() => {
 })
 
 const login = async () => {
-  if (!form.value.phone.trim()) { toastError('Nomor HP harus diisi'); return }
-  if (form.value.password.length < 8) { toastError('Password minimal 8 karakter'); return }
+  if (!form.value.phone.trim()) {
+    toastError('Nomor HP harus diisi')
+    return
+  }
+  if (form.value.password.length < 8) {
+    toastError('Password minimal 8 karakter')
+    return
+  }
 
   loading.value = true
-
   try {
     const res = await $fetch<{
       status: string
@@ -129,17 +137,13 @@ const login = async () => {
       }
     })
 
-    if (res.data.user.role !== 'owner') {
-      toastError('Akun ini bukan akun owner')
-      return
-    }
-
+    // Debug — hapus setelah konfirmasi token tersimpan
     authStore.setAuth(res.data.token, res.data.user)
-    router.push('/owner')
+    router.push(redirectTo.value)
 
   } catch (err: any) {
     const status = err?.statusCode || err?.status || err?.response?.status
-
+    
     if (status === 401) {
       toastError('Nomor HP atau password salah')
     } else if (status === 429) {

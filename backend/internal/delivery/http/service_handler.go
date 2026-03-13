@@ -161,3 +161,30 @@ func (h *ServiceHandler) DeleteService(c *gin.Context) {
 
 	utils.SuccessResponse(c, http.StatusOK, "Layanan berhasil dihapus", nil)
 }
+
+// GetAllByOutletIDPublic handles getting all services for a specific outlet without auth.
+// GET /api/v1/public/outlets/:id/services
+func (h *ServiceHandler) GetAllByOutletIDPublic(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	outletID := c.Param("id")
+
+	if _, err := uuid.Parse(outletID); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Format Outlet ID tidak valid", nil)
+		return
+	}
+
+	// This specific usecase bypasses the userID ownership check
+	resp, err := h.serviceUsecase.GetAllByOutletIDPublic(ctx, outletID)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Daftar layanan public berhasil diambil", resp)
+}
