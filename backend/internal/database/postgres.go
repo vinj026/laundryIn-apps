@@ -18,6 +18,7 @@ func ConnectDB() *gorm.DB {
 
 	if databaseURL != "" {
 		// Jika ada DATABASE_URL (stau format standar di Railway/Heroku/Vercel)
+		fmt.Println("📍 Using DATABASE_URL for connection")
 		dsn = databaseURL
 	} else {
 		// Fallback ke variabel individu (biasanya buat local)
@@ -32,6 +33,14 @@ func ConnectDB() *gorm.DB {
 			sslMode = "disable"
 		}
 
+		// Logging untuk debug (jangan log password beneran)
+		fmt.Printf("🔍 Connection Info: host=%s, user=%s, db=%s, port=%s, sslmode=%s\n",
+			host, user, dbName, port, sslMode)
+
+		if host == "" || user == "" || dbName == "" || port == "" {
+			fmt.Println("⚠️  Warning: Missing one or more individual DB environment variables!")
+		}
+
 		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
 			host, user, password, dbName, port, sslMode)
 	}
@@ -39,6 +48,7 @@ func ConnectDB() *gorm.DB {
 	// 3. Buka koneksi pake GORM
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
+		fmt.Printf("❌ Failed to connect to database using DSN: %s\n", maskDSN(dsn))
 		log.Fatalf("Gagal koneksi ke database PostgreSQL: %v", err)
 	}
 
@@ -46,4 +56,9 @@ func ConnectDB() *gorm.DB {
 
 	DB = db
 	return db
+}
+
+func maskDSN(dsn string) string {
+	// Sederhana aja buat masking password di log error
+	return "host=... user=... password=***** dbname=... port=..."
 }
