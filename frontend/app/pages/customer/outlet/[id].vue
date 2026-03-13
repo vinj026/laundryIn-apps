@@ -478,11 +478,7 @@ const checkout = async () => {
 
     await useApiRaw('/api/orders', {
       method: 'POST',
-        items: cartStore.items.map(i => ({
-          service_id: i.serviceId,
-          qty: i.qty.toString()
-        }))
-      }
+      body: payload
     })
 
     // Success: clear cart, toast, and redirect

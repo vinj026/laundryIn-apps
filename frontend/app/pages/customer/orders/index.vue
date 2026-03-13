@@ -103,22 +103,9 @@ interface Order {
   order_date: string
 }
 
-const { data: ordersResponse, pending, error, refresh } = await useApiFetch<PaginatedResponse<Order[]>>('/api/orders')
+const { data: ordersResponse, pending, error, refresh } = await useApiFetch<ApiResponse<PaginatedResponse<Order[]>>>('/api/orders')
 
-watchEffect(() => {
-  if (error.value) {
-    const status = error.value?.statusCode || error.value?.status || (error.value?.data as any)?.statusCode
-    if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
-      router.push('/customer/login')
-    } else {
-      toastError('Gagal memuat pesanan')
-    }
-  }
-})
-
-const ordersList = computed(() => ordersWrapper.value?.data?.data ?? [])
+const ordersList = computed(() => (ordersResponse.value?.data as any)?.data ?? [])
 
 onActivated(() => {
   refresh()
