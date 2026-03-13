@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"laundryin/internal/database"
 	handler "laundryin/internal/delivery/http"
@@ -16,11 +17,8 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// Load environment variables (optional for production environments like Railway)
+	_ = godotenv.Load()
 
 	// Register custom validators (must be before any request handling)
 	utils.RegisterCustomValidators()
@@ -139,5 +137,9 @@ func main() {
 		v1.GET("/ws/connect", handler.AuthMiddleware(), notifHandler.Connect)
 	}
 
-	r.Run() // defaults to :8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r.Run(":" + port)
 }
