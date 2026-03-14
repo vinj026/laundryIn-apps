@@ -158,6 +158,7 @@ const register = async () => {
     router.push('/customer')
 
   } catch (err: any) {
+    console.error('🔴 REGISTER_ERROR:', err)
     const status = err?.statusCode || err?.status || err?.response?.status
     const apiMsg = err?.data?.message || ''
 

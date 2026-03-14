@@ -142,6 +142,7 @@ const login = async () => {
     router.push(redirectTo.value)
 
   } catch (err: any) {
+    console.error('🔴 LOGIN_ERROR:', err)
     const status = err?.statusCode || err?.status || err?.response?.status
     
     if (status === 401) {

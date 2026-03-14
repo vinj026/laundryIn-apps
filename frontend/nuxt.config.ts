@@ -39,7 +39,8 @@ export default defineNuxtConfig({
   },
   vite: {
     esbuild: {
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+      // Temporarily disabled console drop for remote debugging (Phase 2)
+      drop: []
     }
   }
 })

@@ -27,8 +27,8 @@ func NewAuthHandler(authUsecase usecase.AuthUsecase) *AuthHandler {
 // Register handles user registration.
 // POST /api/v1/auth/register
 func (h *AuthHandler) Register(c *gin.Context) {
-	// Set 5-second timeout for registration
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	// Set 15-second timeout for registration (Extended for production reliability)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
 
 	var req dto.RegisterRequest
@@ -64,8 +64,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // Login handles user login.
 // POST /api/v1/auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
-	// Set 5-second timeout for login
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	// Set 15-second timeout for login (Extended for production reliability)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
 
 	var req dto.LoginRequest
