@@ -71,7 +71,8 @@ func (u *outletUsecase) GetAllPublic(ctx context.Context, page, limit int) (*dto
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, errors.New("gagal mengambil data outlet")
+		// Return original error so it can be logged by the handler
+		return nil, err
 	}
 
 	// Always return empty array, never nil

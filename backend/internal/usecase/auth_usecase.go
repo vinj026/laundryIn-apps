@@ -104,7 +104,8 @@ func (u *authUsecase) Login(ctx context.Context, req dto.LoginRequest) (*dto.Aut
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrInvalidCredentials
 		}
-		return nil, errors.New("terjadi kesalahan internal")
+		// Return original error for logging
+		return nil, err
 	}
 
 	// Check password

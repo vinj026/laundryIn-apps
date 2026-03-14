@@ -104,7 +104,8 @@ func (u *serviceUsecase) GetAllByOutletIDPublic(ctx context.Context, outletID st
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, errors.New("gagal mengambil daftar layanan")
+		// Return original error for logging
+		return nil, err
 	}
 
 	// Always return empty array instead of nil
