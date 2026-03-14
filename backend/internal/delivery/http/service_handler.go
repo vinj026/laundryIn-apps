@@ -41,18 +41,18 @@ func (h *ServiceHandler) CreateService(c *gin.Context) {
 	resp, err := h.serviceUsecase.Create(ctx, userID, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrOutletNotFound) {
-			utils.ErrorResponse(c, http.StatusNotFound, "Outlet tidak ditemukan atau Anda bukan pemiliknya", nil)
+			utils.ErrorResponse(c, http.StatusNotFound, "Outlet tidak ditemukan atau Anda bukan pemiliknya", err.Error())
 			return
 		}
 		if err.Error() == "harga harus berupa angka positif yang valid" || err.Error() == "gagal memvalidasi outlet" {
-			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), nil)
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
@@ -76,10 +76,10 @@ func (h *ServiceHandler) GetAllByOutletID(c *gin.Context) {
 	resp, err := h.serviceUsecase.GetAllByOutletID(ctx, outletID, userID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
@@ -109,22 +109,22 @@ func (h *ServiceHandler) UpdateService(c *gin.Context) {
 	resp, err := h.serviceUsecase.Update(ctx, serviceID, userID, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrServiceNotFound) {
-			utils.ErrorResponse(c, http.StatusNotFound, "Layanan tidak ditemukan atau akses ditolak", nil)
+			utils.ErrorResponse(c, http.StatusNotFound, "Layanan tidak ditemukan atau akses ditolak", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrOutletNotFound) {
-			utils.ErrorResponse(c, http.StatusNotFound, "Outlet tujuan tidak ditemukan atau akses ditolak", nil)
+			utils.ErrorResponse(c, http.StatusNotFound, "Outlet tujuan tidak ditemukan atau akses ditolak", err.Error())
 			return
 		}
 		if err.Error() == "harga harus berupa angka positif yang valid" || err.Error() == "gagal memvalidasi outlet" {
-			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), nil)
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
@@ -148,14 +148,14 @@ func (h *ServiceHandler) DeleteService(c *gin.Context) {
 	err := h.serviceUsecase.Delete(ctx, serviceID, userID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrServiceNotFound) {
-			utils.ErrorResponse(c, http.StatusNotFound, "Layanan tidak ditemukan atau akses ditolak", nil)
+			utils.ErrorResponse(c, http.StatusNotFound, "Layanan tidak ditemukan atau akses ditolak", err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
@@ -179,10 +179,10 @@ func (h *ServiceHandler) GetAllByOutletIDPublic(c *gin.Context) {
 	resp, err := h.serviceUsecase.GetAllByOutletIDPublic(ctx, outletID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 

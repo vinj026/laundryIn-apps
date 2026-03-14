@@ -40,18 +40,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	resp, err := h.authUsecase.Register(ctx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrWeakPassword) {
-			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), nil)
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrDuplicatePhone) {
-			utils.ErrorResponse(c, http.StatusConflict, err.Error(), nil)
+			utils.ErrorResponse(c, http.StatusConflict, err.Error(), err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
@@ -74,14 +74,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	resp, err := h.authUsecase.Login(ctx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
 		if errors.Is(err, usecase.ErrInvalidCredentials) {
-			utils.ErrorResponse(c, http.StatusUnauthorized, err.Error(), nil)
+			utils.ErrorResponse(c, http.StatusUnauthorized, err.Error(), err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 

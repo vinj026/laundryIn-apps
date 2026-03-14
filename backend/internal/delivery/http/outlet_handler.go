@@ -211,10 +211,10 @@ func (h *OutletHandler) GetAllOutletsPublic(c *gin.Context) {
 	resp, err := h.outletUsecase.GetAllPublic(ctx, pagination.Page, pagination.Limit)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", nil)
+			utils.ErrorResponse(c, http.StatusRequestTimeout, "Proses terlalu lama, silakan coba lagi", err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", nil)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
 
