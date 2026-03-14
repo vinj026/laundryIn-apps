@@ -9,8 +9,10 @@ import (
 
 // Base provides a consistent string-based UUID primary key for all models.
 // All IDs are plain Go strings — no uuid.UUID anywhere.
+// Base provides a consistent string-based UUID primary key for all models.
+// All IDs are plain Go strings — no uuid.UUID anywhere.
 type Base struct {
-	ID        string         `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	ID        string         `gorm:"primaryKey;type:uuid" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -62,7 +64,7 @@ type Order struct {
 }
 
 type OrderItem struct {
-	ID           string          `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	ID           string          `gorm:"primaryKey;type:uuid" json:"id"`
 	OrderID      string          `gorm:"type:uuid;not null;index" json:"order_id"`
 	ServiceName  string          `gorm:"type:varchar(100);not null" json:"service_name"`
 	ServicePrice decimal.Decimal `gorm:"type:numeric(10,2);not null" json:"service_price"`
@@ -74,7 +76,7 @@ type OrderItem struct {
 }
 
 type OrderLog struct {
-	ID        string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	ID        string    `gorm:"primaryKey;type:uuid" json:"id"`
 	OrderID   string    `gorm:"type:uuid;not null;index" json:"order_id"`
 	UpdatedBy string    `gorm:"type:uuid;not null" json:"updated_by"`
 	OldStatus string    `gorm:"type:varchar(20)" json:"old_status"`
@@ -84,7 +86,7 @@ type OrderLog struct {
 }
 
 type Notification struct {
-	ID        string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	ID        string    `gorm:"primaryKey;type:uuid" json:"id"`
 	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
 	Type      string    `gorm:"type:varchar(50);not null" json:"type"`
 	Title     string    `gorm:"type:varchar(200);not null" json:"title"`

@@ -89,6 +89,12 @@ func ConnectDB() *gorm.DB {
 
 	fmt.Println("✅ Database Connected Successfully!")
 	DB = db
+
+	// Enable uuid-ossp extension (required for UUID types in some PG versions/configurations)
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
+		fmt.Printf("⚠️  Warning: Could not ensure uuid-ossp extension: %v (Migration might fail if DB-side UUIDs are used)\n", err)
+	}
+
 	return db
 }
 
