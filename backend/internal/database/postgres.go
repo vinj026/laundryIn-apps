@@ -98,6 +98,15 @@ func ConnectDB() *gorm.DB {
 	fmt.Println("✅ Database Connected Successfully!")
 	DB = db
 
+	// Check for critical JWT_SECRET
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		fmt.Println("⚠️  WARNING: JWT_SECRET is not set! Authentication will FAIL in production.")
+		fmt.Println("💡 SOLUSI: Tambahkan variabel 'JWT_SECRET' di dashboard Railway dengan string random yang panjang.")
+	} else {
+		fmt.Printf("🛡️  JWT_SECRET: [DITEMUKAN] (%d karakter)\n", len(jwtSecret))
+	}
+
 	// Enable uuid-ossp extension (required for UUID types in some PG versions/configurations)
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
 		fmt.Printf("⚠️  Warning: Could not ensure uuid-ossp extension: %v (Migration might fail if DB-side UUIDs are used)\n", err)

@@ -39,7 +39,7 @@ var upgrader = gorilla.Upgrader{
 			"http://localhost:3001":            true,
 		}
 
-		return allowedOrigins[origin]
+		return allowedOrigins[origin] || strings.HasSuffix(origin, ".vercel.app")
 	},
 }
 

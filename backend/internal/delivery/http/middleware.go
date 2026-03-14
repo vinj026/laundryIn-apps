@@ -188,9 +188,10 @@ func CORSMiddleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
+		isVercelSubdomain := strings.HasSuffix(origin, ".vercel.app")
 
 		// Check if origin is allowed
-		if origin != "" && !allowedOrigins[origin] {
+		if origin != "" && !allowedOrigins[origin] && !isVercelSubdomain {
 			// For production, reject unknown origins
 			if os.Getenv("GIN_MODE") == "release" {
 				c.AbortWithStatus(http.StatusForbidden)
@@ -199,11 +200,12 @@ func CORSMiddleware() gin.HandlerFunc {
 			// In development, we can be more lenient or just pick one
 		}
 
-		// If it's a known or valid origin, set it. Otherwise fallback to wildcard for local dev
+		// If it's a known, valid origin, or a vercel subdomain, set it. 
+		// Otherwise fallback to wildcard for local dev
 		effectiveOrigin := origin
 		if effectiveOrigin == "" {
 			effectiveOrigin = "*"
-		} else if !allowedOrigins[origin] {
+		} else if !allowedOrigins[origin] && !isVercelSubdomain {
 			effectiveOrigin = "*" // Local dev fallback
 		}
 
