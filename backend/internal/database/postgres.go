@@ -39,9 +39,13 @@ func ConnectDB() *gorm.DB {
 		
 		if host == "" { 
 			if isRailway {
-				fmt.Println("⚠️  Peringatan: Host DB tidak ditemukan di environment Railway!")
+				fmt.Println("⚠️  CRITICAL: Host DB tidak ditemukan! Kamu BELUM menghubungkan service Postgres ke service ini di Railway.")
+				fmt.Println("💡 SOLUSI: Di Dashboard Railway, masuk ke menu 'Variables', klik 'New Variable', lalu tambahkan 'DATABASE_URL' dengan value '${{Postgres.DATABASE_URL}}'")
+				// Jangan default ke localhost kalo di Railway biar gak bingung
+				host = "REQUIRED_VARIABLE_MISSING"
+			} else {
+				host = "localhost" 
 			}
-			host = "localhost" 
 		}
 		if port == "" { port = "5432" }
 		if user == "" { user = "postgres" }
