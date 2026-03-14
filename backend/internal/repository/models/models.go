@@ -9,8 +9,6 @@ import (
 
 // Base provides a consistent string-based UUID primary key for all models.
 // All IDs are plain Go strings — no uuid.UUID anywhere.
-// Base provides a consistent string-based UUID primary key for all models.
-// All IDs are plain Go strings — no uuid.UUID anywhere.
 type Base struct {
 	ID        string         `gorm:"primaryKey;type:uuid" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -87,11 +85,11 @@ type OrderLog struct {
 
 type Notification struct {
 	ID        string    `gorm:"primaryKey;type:uuid" json:"id"`
-	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID    string    `gorm:"type:uuid;not null;index:idx_notif_user_read;index:idx_notif_user_created" json:"user_id"`
 	Type      string    `gorm:"type:varchar(50);not null" json:"type"`
 	Title     string    `gorm:"type:varchar(200);not null" json:"title"`
 	Body      string    `gorm:"type:varchar(500);not null" json:"body"`
 	Data      string    `gorm:"type:jsonb" json:"data"`
-	IsRead    bool      `gorm:"default:false" json:"is_read"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	IsRead    bool      `gorm:"default:false;index:idx_notif_user_read" json:"is_read"`
+	CreatedAt time.Time `gorm:"autoCreateTime;index:idx_notif_user_created,sort:desc" json:"created_at"`
 }

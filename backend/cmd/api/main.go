@@ -65,7 +65,15 @@ func main() {
 	notifHandler := handler.NewNotificationHandler(notifUsecase, hub)
 
 	// === Router Setup ===
+	// Production hardening: Respect GIN_MODE=release and set TrustedProxies
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.Default()
+
+	// Railway/Cloudflare/Vercel proxies are usually fine to trust for header mapping in this context
+	_ = r.SetTrustedProxies(nil)
 
 	// Global security middleware
 	r.Use(handler.CORSMiddleware())
