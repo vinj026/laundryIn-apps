@@ -11,16 +11,16 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go build -o main ./cmd/api/main.go
+RUN go build -o api ./cmd/api/main.go
 
 # Final stage
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
-COPY --from=builder /app/main .
+COPY --from=builder /app/api .
 
 # Railway usually provides the PORT env var automatically
 EXPOSE 8080
 
-CMD ["./main"]
+CMD ["./api"]
