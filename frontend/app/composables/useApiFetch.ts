@@ -1,18 +1,15 @@
 import { useAuthStore } from '~/stores/auth'
 
-export const useApiFetch = <T>(path: any, options: any = {}) => {
+export const useApiFetch: typeof useFetch = (path, options = {}) => {
     const config = useRuntimeConfig()
     const authStore = useAuthStore()
 
     // Map internal /api paths to actual base URL if provided
-    let actualPath = String(path)
-    if (actualPath.startsWith('/api/v1')) {
-        actualPath = actualPath.replace('/api/v1', '')
-    } else if (actualPath.startsWith('/api')) {
-        actualPath = actualPath.replace('/api', '')
-    }
+    const actualPath = String(path).startsWith('/api')
+        ? String(path).replace('/api', '')
+        : path
 
-    return useFetch<T>(actualPath, {
+    return useFetch(actualPath, {
         baseURL: config.public.apiBase,
         ...options,
         headers: {

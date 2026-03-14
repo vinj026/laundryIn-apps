@@ -63,12 +63,9 @@
             <span class="material-symbols-outlined text-lg">arrow_forward</span>
           </template>
         </button>
-        <NuxtLink
-          to="/owner/register"
-          class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors text-center"
-        >
+        <button class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors">
           Don't have an account? <span class="text-primary font-semibold">Register</span>
-        </NuxtLink>
+        </button>
       </div>
     </div>
   </div>
