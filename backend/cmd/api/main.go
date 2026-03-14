@@ -30,10 +30,9 @@ func main() {
 	// Auto-migrate models
 	err := db.AutoMigrate(&models.User{}, &models.Outlet{}, &models.Service{}, &models.Order{}, &models.OrderItem{}, &models.OrderLog{}, &models.Notification{})
 	if err != nil {
-		log.Printf("⚠️  Gagal migrasi database: %v", err)
-	} else {
-		fmt.Println("🚀 Database Migration Successful!")
+		log.Fatalf("❌ CRITICAL: Database migration failed: %v", err)
 	}
+	fmt.Println("🚀 Database Migration Successful!")
 
 	// Initialize WebSocket Hub
 	hub := websocket.NewHub()

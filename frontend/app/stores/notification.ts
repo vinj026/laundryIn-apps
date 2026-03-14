@@ -22,19 +22,14 @@ export const useNotificationStore = defineStore('notification', {
 
     actions: {
         addNotification(notif: Notification) {
-            console.log('addNotification received:', notif)
             // Avoid duplicate by ID if any
             const exists = this.notifications.find(n => n.id === notif.id)
-            if (exists) {
-                console.log('addNotification rejected: duplicate ID', notif.id)
-                return
-            }
+            if (exists) return
 
             this.notifications.unshift(notif)
             if (!notif.is_read) {
                 this.unreadCount++
             }
-            console.log('addNotification successful. New count:', this.notifications.length)
 
             // Limit to 50 in memory
             if (this.notifications.length > 50) {
@@ -52,11 +47,7 @@ export const useNotificationStore = defineStore('notification', {
                     params: { page, limit }
                 })
 
-                // Debug log to trace data structure
-                console.log('Notification API response:', res)
-
                 const fetchedNotifs = res.data?.data || []
-                console.log('Extracted fetchedNotifs:', fetchedNotifs)
 
                 if (page === 1) {
                     // Merge logic: Start with fetched, but keep anything that was added via WS and not in fetched
@@ -75,9 +66,8 @@ export const useNotificationStore = defineStore('notification', {
                 }
 
                 this.unreadCount = res.unread_count ?? 0
-                console.log('Updated notification list length:', this.notifications.length)
             } catch (err) {
-                console.error('Failed to fetch notifications', err)
+                useToast().error('Gagal mengambil notifikasi')
             } finally {
                 this.loading = false
             }
@@ -91,7 +81,7 @@ export const useNotificationStore = defineStore('notification', {
                 const res = await useApiRaw<ApiResponse<{ count: number }>>('/api/notifications/unread-count')
                 this.unreadCount = res.data?.count || 0
             } catch (err) {
-                console.error('Failed to fetch unread count', err)
+                // Silent for unread check
             }
         },
 
@@ -107,7 +97,7 @@ export const useNotificationStore = defineStore('notification', {
                 notif.is_read = true
                 this.unreadCount = Math.max(0, this.unreadCount - 1)
             } catch (err) {
-                console.error('Failed to mark as read', err)
+                useToast().error('Gagal memperbarui status notifikasi')
             }
         },
 
@@ -120,7 +110,7 @@ export const useNotificationStore = defineStore('notification', {
                 this.notifications.forEach(n => n.is_read = true)
                 this.unreadCount = 0
             } catch (err) {
-                console.error('Failed to mark all as read', err)
+                useToast().error('Gagal memperbarui semua notifikasi')
             }
         },
 

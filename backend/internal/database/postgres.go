@@ -49,7 +49,15 @@ func ConnectDB() *gorm.DB {
 		}
 		if port == "" { port = "5432" }
 		if user == "" { user = "postgres" }
-		if sslMode == "" { sslMode = "disable" }
+		
+		// Fix BUG-003: Force require SSL if in Railway and no mode set
+		if sslMode == "" { 
+			if isRailway {
+				sslMode = "require" 
+			} else {
+				sslMode = "disable" 
+			}
+		}
 
 		// Debug: Log semua key yang tersedia (untuk bantu user cek penamaan)
 		fmt.Print("📋 Variabel Environment Tersedia: ")

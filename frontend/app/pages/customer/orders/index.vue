@@ -120,7 +120,7 @@ watchEffect(() => {
   }
 })
 
-const ordersList = computed(() => ordersWrapper.value?.data?.data ?? [])
+const ordersList = computed(() => ordersResponse.value?.data?.data ?? [])
 
 onActivated(() => {
   refresh()

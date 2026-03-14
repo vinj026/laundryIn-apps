@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', {
     setAuth(token: string, user: User) {
       this.token = token
       this.user = user
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.setItem('laundryin_token', token)
         localStorage.setItem('laundryin_user', JSON.stringify(user))
       }
@@ -40,14 +40,14 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.token = null
       this.user = null
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.removeItem('laundryin_token')
         localStorage.removeItem('laundryin_user')
       }
     },
 
     restoreSession() {
-      if (process.client) {
+      if (import.meta.client) {
         const token = localStorage.getItem('laundryin_token')
         const userStr = localStorage.getItem('laundryin_user')
         if (token && userStr) {

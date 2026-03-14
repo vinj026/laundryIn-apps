@@ -3,8 +3,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1',
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080/api/v1/ws/connect'
+      // Use HTTPS/WSS for production, fallback to localhost for development
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL ||
+        (process.env.VERCEL ? 'https://laundryin-backend-production.up.railway.app/api/v1' : 'http://localhost:8080/api/v1'),
+      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL ||
+        (process.env.VERCEL ? 'wss://laundryin-backend-production.up.railway.app/api/v1/ws/connect' : 'ws://localhost:8080/api/v1/ws/connect')
     }
   },
   devtools: { enabled: true },
@@ -12,7 +15,9 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
-  routeRules: {
+  // SSR Proxy is only needed for local dev to avoid CORS. 
+  // In production, we hit the API directly via useApiFetch.
+  routeRules: process.env.VERCEL ? {} : {
     '/api/**': { proxy: 'http://localhost:8080/api/v1/**' }
   },
   css: ['~/assets/css/main.css'],
@@ -30,6 +35,11 @@ export default defineNuxtConfig({
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' }
       ]
+    }
+  },
+  vite: {
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }
   }
 })

@@ -9,8 +9,9 @@ export const useWebSocket = () => {
 
     let ws: WebSocket | null = null
     let reconnectTimer: any = null
-    let reconnectDelay = 1000
-    const MAX_RECONNECT_DELAY = 30000
+    let reconnectDelay = 2000
+    const MAX_RECONNECT_DELAY = 60000
+    const RECONNECT_JITTER = 1000
 
     const connect = () => {
         if (!import.meta.client || !authStore.isLoggedIn || ws) return
@@ -29,7 +30,7 @@ export const useWebSocket = () => {
         ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
-            reconnectDelay = 1000
+            reconnectDelay = 2000
         }
 
         ws.onmessage = (event) => {
@@ -62,10 +63,14 @@ export const useWebSocket = () => {
 
     const scheduleReconnect = () => {
         if (reconnectTimer) clearTimeout(reconnectTimer)
+
+        // Add jitter to prevent thundering herd
+        const delayWithJitter = reconnectDelay + Math.random() * RECONNECT_JITTER
+
         reconnectTimer = setTimeout(() => {
             reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
             connect()
-        }, reconnectDelay)
+        }, delayWithJitter)
     }
 
     const disconnect = () => {

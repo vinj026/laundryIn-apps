@@ -36,6 +36,12 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// Fix BUG-020: Sanitize inputs for data integrity
+	req.OutletID = utils.Sanitize(req.OutletID)
+	for i := range req.Items {
+		req.Items[i].ServiceID = utils.Sanitize(req.Items[i].ServiceID)
+	}
+
 	resp, err := h.orderUsecase.Create(ctx, userID, req)
 	if err != nil {
 		// Stop leak: Do not use err.Error() directly unless known

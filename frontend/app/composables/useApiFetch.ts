@@ -26,6 +26,22 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
         fetchOptions.immediate = false
     }
 
+    // Fix BUG-007: Handle 401 Unauthorized globally
+    const { error: toastError } = useToast()
+    const router = useRouter()
+
+    const originalOnResponseError = fetchOptions.onResponseError
+    fetchOptions.onResponseError = async (context: any) => {
+        if (context.response.status === 401 && authStore.token) {
+            authStore.logout()
+            toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
+            router.push('/customer/login')
+        }
+        if (originalOnResponseError) {
+            await originalOnResponseError(context)
+        }
+    }
+
     return useFetch(actualPath, fetchOptions)
 }
 
@@ -47,5 +63,16 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
             ...authStore.authHeader ? { Authorization: authStore.authHeader } : {},
             ...options.headers,
         },
+        onResponseError: async (context) => {
+            if (context.response.status === 401 && authStore.token) {
+                authStore.logout()
+                const { error: toastError } = useToast()
+                toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
+                useRouter().push('/customer/login')
+            }
+            if (options.onResponseError) {
+                await options.onResponseError(context)
+            }
+        }
     })
 }

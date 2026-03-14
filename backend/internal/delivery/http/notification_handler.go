@@ -26,13 +26,20 @@ func NewNotificationHandler(notifUsecase usecase.NotificationUsecase, hub *webso
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, we should validate the Origin header.
-		// For now, allow any origin but log it for easier debugging and future restriction.
+		// Fix BUG-006: Whitelist origins for WS
 		origin := r.Header.Get("Origin")
 		if origin == "" {
-			return true
+			return true // Allow mobile/client directly
 		}
-		return true
+
+		allowedOrigins := map[string]bool{
+			"https://laundryin.vercel.app":     true,
+			"https://www.laundryin.vercel.app": true,
+			"http://localhost:3000":            true,
+			"http://localhost:3001":            true,
+		}
+
+		return allowedOrigins[origin]
 	},
 }
 

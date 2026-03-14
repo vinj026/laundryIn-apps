@@ -36,7 +36,7 @@ var ErrDuplicatePhone = errors.New("nomor HP sudah terdaftar")
 var ErrInvalidCredentials = errors.New("nomor HP atau password salah")
 
 // ErrWeakPassword is returned when the password doesn't meet complexity requirements.
-var ErrWeakPassword = errors.New("password harus mengandung setidaknya satu huruf besar, satu huruf kecil, dan satu angka")
+var ErrWeakPassword = errors.New("Password harus mengandung huruf besar, huruf kecil, dan angka")
 
 func (u *authUsecase) Register(ctx context.Context, req dto.RegisterRequest) (*dto.AuthResponse, error) {
 	// Sanitize inputs — using shared utils.Sanitize
