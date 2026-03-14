@@ -16,35 +16,58 @@ var DB *gorm.DB
 func ConnectDB() *gorm.DB {
 	var dsn string
 	
-	// 1. Prioritaskan DATABASE_URL (Format universal)
-	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
-		fmt.Println("📍 Menggunakan DATABASE_URL untuk koneksi")
+	// 1. Prioritaskan DATABASE_URL atau DATABASE_PRIVATE_URL (Format universal)
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = os.Getenv("DATABASE_PRIVATE_URL") // Sering dipakai di Railway internal
+	}
+
+	if databaseURL != "" {
+		fmt.Println("📍 Menggunakan DATABASE_URL/PRIVATE_URL untuk koneksi")
 		dsn = databaseURL
 	} else {
 		// 2. Fallback: Cek variabel DB_* (Custom kita) atau PG* (Bawaan Railway/Postgres)
-		host := getEnvFallback("DB_HOST", "PGHOST")
-		user := getEnvFallback("DB_USER", "PGUSER")
-		password := getEnvFallback("DB_PASSWORD", "PGPASSWORD")
-		dbName := getEnvFallback("DB_NAME", "PGDATABASE", "DB_DATABASE")
-		port := getEnvFallback("DB_PORT", "PGPORT")
-		sslMode := getEnvFallback("DB_SSLMODE", "PGSSLMODE")
+		host := getEnvFallback("DB_HOST", "PGHOST", "POSTGRES_HOST")
+		user := getEnvFallback("DB_USER", "PGUSER", "POSTGRES_USER")
+		password := getEnvFallback("DB_PASSWORD", "PGPASSWORD", "POSTGRES_PASSWORD")
+		dbName := getEnvFallback("DB_NAME", "PGDATABASE", "DB_DATABASE", "POSTGRES_DB")
+		port := getEnvFallback("DB_PORT", "PGPORT", "POSTGRES_PORT")
+		sslMode := getEnvFallback("DB_SSLMODE", "PGSSLMODE", "POSTGRES_SSLMODE")
 
-		if host == "" { host = "localhost" }
+		// Jika di Railway (biasanya ada variable RAILWAY_ENVIRONMENT), jangan default ke localhost
+		isRailway := os.Getenv("RAILWAY_ENVIRONMENT") != "" || os.Getenv("RAILWAY_STATIC_URL") != ""
+		
+		if host == "" { 
+			if isRailway {
+				fmt.Println("⚠️  Peringatan: Host DB tidak ditemukan di environment Railway!")
+			}
+			host = "localhost" 
+		}
 		if port == "" { port = "5432" }
 		if user == "" { user = "postgres" }
 		if sslMode == "" { sslMode = "disable" }
 
+		// Debug: Log semua key yang tersedia (untuk bantu user cek penamaan)
+		fmt.Print("📋 Variabel Environment Tersedia: ")
+		for _, env := range os.Environ() {
+			key := strings.Split(env, "=")[0]
+			if strings.Contains(key, "DB") || strings.Contains(key, "PG") || strings.Contains(key, "PORT") || strings.Contains(key, "DATABASE") {
+				fmt.Printf("%s, ", key)
+			}
+		}
+		fmt.Println("")
+
 		// Mask password for logging
 		maskedPassword := "********"
 		if password == "" {
-			maskedPassword = "[empty]"
+			maskedPassword = "[kosong]"
 		}
 
-		fmt.Printf("🔍 Info Koneksi: host=%s, user=%s, password=%s, db=%s, port=%s, sslmode=%s\n", 
+		fmt.Printf("🔍 Detail Koneksi: host=%s, user=%s, password=%s, db=%s, port=%s, sslmode=%s\n", 
 			host, user, maskedPassword, dbName, port, sslMode)
 		
 		if dbName == "" {
-			fmt.Println("⚠️  Peringatan: Nama Database (DB_NAME) masih kosong!")
+			fmt.Println("❌ Error: Nama Database (DB_NAME) tidak ditemukan!")
 		}
 
 		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
