@@ -109,8 +109,10 @@ watchEffect(() => {
   if (error.value) {
     const status = error.value?.statusCode || error.value?.status || (error.value?.data as any)?.statusCode
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/customer/login')
     } else {
       toastError('Gagal memuat pesanan')

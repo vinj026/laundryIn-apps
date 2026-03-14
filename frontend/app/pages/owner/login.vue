@@ -63,9 +63,9 @@
             <span class="material-symbols-outlined text-lg">arrow_forward</span>
           </template>
         </button>
-        <button class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors">
+        <NuxtLink to="/owner/register" class="py-2.5 w-full text-surface-onSurfaceVariant text-xs font-medium hover:text-primary transition-colors text-center">
           Don't have an account? <span class="text-primary font-semibold">Register</span>
-        </button>
+        </NuxtLink>
       </div>
     </div>
   </div>
@@ -88,7 +88,9 @@ const router = useRouter()
 watchEffect(() => {
   if (import.meta.client && authStore.isLoggedIn) {
     if (authStore.user?.role === 'customer') {
-      toastError('Kamu sudah login sebagai customer, silakan logout terlebih dahulu')
+      if (authStore.token) {
+        toastError('Kamu sudah login sebagai customer, silakan logout terlebih dahulu')
+      }
       router.push('/customer')
     } else if (authStore.user?.role === 'owner') {
       router.push('/owner')

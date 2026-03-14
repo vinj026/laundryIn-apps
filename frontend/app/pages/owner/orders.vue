@@ -250,7 +250,7 @@ const { data: ordersWrapper, pending, error, refresh } = await useAsyncData<ApiR
       return { status: 'success', message: '', data: { data: [], page: 1, limit: 10, total: 0, total_pages: 0 } }
     }
     return useApiRaw<ApiResponse<PaginatedResponse<Order[]>>>(`/api/outlets/${selectedOutletId.value}/orders`, {
-      params: { page: ordersPage.value, limit: 10 }
+      params: { page: 1, limit: 10 }
     })
   },
   { watch: [selectedOutletId], server: false }
@@ -294,8 +294,10 @@ watchEffect(() => {
   if (error.value) {
     const status = error.value?.statusCode || error.value?.status || (error.value?.data as any)?.statusCode
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError('Gagal memuat pesanan')
@@ -336,8 +338,10 @@ const updateStatus = async (id: string, newStatus: string) => {
     const apiMsg = err?.data?.message || ''
 
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else if (status === 404) {
       toastError('Pesanan tidak ditemukan')

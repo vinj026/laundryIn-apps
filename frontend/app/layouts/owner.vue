@@ -1,60 +1,82 @@
 <template>
-  <div class="flex flex-col h-full w-full flex-1 min-h-0 relative">
-
-    <!-- Top App Bar -->
-    <header class="h-14 shrink-0 glass flex justify-center z-40 w-full border-b border-border">
-      <div class="w-full max-w-[1200px] px-4 md:px-8 flex items-center justify-between h-full">
-        <div class="flex items-center gap-3">
-          <div class="h-8 w-8 bg-primary/15 rounded-lg flex items-center justify-center">
-            <span class="material-symbols-outlined text-primary text-lg">local_laundry_service</span>
-          </div>
-          <h1 class="text-base font-semibold tracking-tight">LaundryIn</h1>
+  <div class="flex h-full w-full relative">
+    <!-- Desktop Sidebar (hidden mobile) -->
+    <aside class="hidden lg:flex w-[72px] shrink-0 bg-surface-raised border-r border-border flex-col justify-between py-5 z-40 relative">
+      <div class="flex flex-col items-center gap-7">
+        <!-- Logo -->
+        <div class="h-10 w-10 bg-primary/15 rounded-xl flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary text-xl">local_laundry_service</span>
         </div>
-        <div class="flex items-center gap-2 profile-menu">
-          <!-- Notification Bell -->
-          <div class="relative notif-menu">
+
+        <!-- Nav Items -->
+        <nav class="flex flex-col gap-1.5 w-full items-center">
+           <!-- Notification Bell (Shared) -->
+           <div v-if="authStore.isLoggedIn" class="relative notif-menu w-full flex flex-col items-center mb-2">
             <button 
               @click="notifStore.toggleDropdown()"
-              class="material-symbols-outlined text-surface-onSurfaceVariant hover:text-surface-onSurface p-2 rounded-xl hover:bg-surface-containerHigh transition-all duration-normal text-[22px] relative"
+              class="nav-item flex flex-col items-center gap-0.5 w-full py-1.5 group"
+              :class="{ 'text-primary': notifStore.isOpen, 'text-surface-onSurfaceVariant': !notifStore.isOpen }"
             >
-              notifications
-              <span v-if="notifStore.unreadCount > 0" class="absolute top-1.5 right-1.5 w-4 h-4 bg-danger text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-surface">
-                {{ notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount }}
-              </span>
-            </button>
-            <UiNotificationDropdown />
-          </div>
-          
-          <!-- Dropdown Profile -->
-          <div class="relative">
-            <button @click="showProfileDropdown = !showProfileDropdown" class="h-8 w-8 bg-primary/15 text-primary hover:bg-primary/25 transition-colors rounded-full flex items-center justify-center font-bold text-xs uppercase relative">
-              {{ authStore.user?.name ? authStore.user.name.charAt(0) : 'O' }}
-            </button>
-            <div v-if="showProfileDropdown" class="absolute right-0 top-full mt-2 w-48 bg-surface-raised border border-border rounded-xl shadow-lg py-1 z-50 animate-fade-in group">
-              <div class="px-4 py-3 border-b border-border mb-1">
-                <p class="text-sm font-bold truncate text-surface-onSurface leading-tight">{{ authStore.user?.name || 'Owner' }}</p>
-                <p class="text-[10px] text-surface-onSurfaceVariant truncate mt-0.5">{{ authStore.user?.phone || '' }}</p>
+              <div
+                class="h-9 w-12 rounded-xl flex items-center justify-center transition-all duration-normal relative"
+                :class="notifStore.isOpen ? 'bg-primary/15 text-primary' : 'text-surface-onSurfaceVariant group-hover:bg-surface-containerHigh group-hover:text-surface-onSurface'"
+              >
+                <span class="material-symbols-outlined text-[22px]" :style="notifStore.isOpen ? 'font-variation-settings: \'FILL\' 1' : ''">notifications</span>
+                <span v-if="notifStore.unreadCount > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-surface">
+                  {{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}
+                </span>
               </div>
-              <button @click="logout" class="w-full text-left px-4 py-2 mt-1 mb-1 text-sm font-medium text-danger hover:bg-danger/10 transition-colors flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
-                Logout
-              </button>
+              <span class="text-[10px] font-medium">Notif</span>
+            </button>
+            <UiNotificationDropdown class="!bottom-auto !top-0 !left-[68px] !right-auto" />
+          </div>
+
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to"
+            class="nav-item flex flex-col items-center gap-0.5 w-full py-1.5 group"
+            :class="{ 'is-active': isActive(item.to) }"
+          >
+            <div
+              class="h-9 w-12 rounded-xl flex items-center justify-center transition-all duration-normal"
+              :class="isActive(item.to) ? 'bg-primary/15 text-primary' : 'text-surface-onSurfaceVariant group-hover:bg-surface-containerHigh group-hover:text-surface-onSurface'"
+            >
+              <span class="material-symbols-outlined text-[22px]" :style="isActive(item.to) ? 'font-variation-settings: \'FILL\' 1' : ''">{{ item.icon }}</span>
             </div>
+            <span class="text-[10px] font-medium" :class="isActive(item.to) ? 'text-primary' : 'text-surface-onSurfaceVariant'">{{ item.label }}</span>
+          </NuxtLink>
+        </nav>
+      </div>
+
+      <!-- Bottom -->
+      <div class="flex flex-col items-center justify-end flex-1 profile-menu w-full pb-4">
+        <div v-if="authStore.isLoggedIn" class="relative flex justify-center w-full">
+          <button @click="showProfileDropdown = !showProfileDropdown" class="h-9 w-9 rounded-full bg-primary/15 text-primary hover:bg-primary/25 transition-colors flex items-center justify-center font-bold text-sm uppercase">
+            {{ authStore.user?.name ? authStore.user.name.charAt(0) : 'O' }}
+          </button>
+
+          <!-- Dropdown Profile -->
+          <div v-if="showProfileDropdown" class="absolute bottom-0 left-[68px] w-48 bg-surface-raised border border-border rounded-xl shadow-xl py-1 animate-fade-in group">
+            <div class="px-4 py-3 border-b border-border mb-1">
+              <p class="text-sm font-bold truncate text-surface-onSurface leading-tight">{{ authStore.user?.name || 'Owner' }}</p>
+              <p class="text-[10px] text-surface-onSurfaceVariant truncate mt-0.5">{{ authStore.user?.phone || '' }}</p>
+            </div>
+            <button @click="logout" class="w-full text-left px-4 py-2 mb-1 text-sm font-medium text-danger hover:bg-danger/10 transition-colors flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">logout</span>
+              Logout
+            </button>
           </div>
         </div>
       </div>
-    </header>
+    </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto w-full flex flex-col items-center pb-20 custom-scrollbar">
-      <div class="w-full max-w-[1200px] flex-1">
-        <slot />
-      </div>
-    </main>
+    <main class="flex-1 min-h-0 overflow-y-auto relative flex flex-col custom-scrollbar">
+      <slot />
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="absolute bottom-0 left-0 right-0 h-16 bg-surface-raised/95 backdrop-blur-lg border-t border-border flex justify-center z-50">
-      <div class="w-full max-w-[1200px] flex items-center justify-around px-4 h-full">
+      <!-- Mobile Bottom Nav -->
+      <nav class="lg:hidden shrink-0 h-16 bg-surface-raised/95 backdrop-blur-lg border-t border-border flex items-center justify-around px-4 z-50">
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
@@ -73,8 +95,28 @@
           </div>
           <span class="text-[10px] font-medium" :class="isActive(item.to) ? 'text-primary' : 'text-surface-onSurfaceVariant'">{{ item.label }}</span>
         </NuxtLink>
-      </div>
-    </nav>
+        <button
+          @click="showProfileDropdown = !showProfileDropdown"
+          class="flex flex-col items-center justify-center gap-0.5 py-1 min-w-[64px] relative"
+        >
+          <div class="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-xs uppercase overflow-hidden">
+            {{ authStore.user?.name ? authStore.user.name.charAt(0) : 'O' }}
+          </div>
+          <span class="text-[10px] font-medium text-surface-onSurfaceVariant">Profile</span>
+          
+           <!-- Mobile Profile Dropdown -->
+           <div v-if="showProfileDropdown" class="absolute bottom-full right-4 mb-2 w-48 bg-surface-raised border border-border rounded-xl shadow-xl py-1 animate-fade-in z-[60]">
+            <div class="px-4 py-3 border-b border-border mb-1">
+              <p class="text-sm font-bold truncate text-surface-onSurface leading-tight">{{ authStore.user?.name || 'Owner' }}</p>
+            </div>
+            <button @click="logout" class="w-full text-left px-4 py-2 text-sm font-medium text-danger flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">logout</span>
+              Logout
+            </button>
+          </div>
+        </button>
+      </nav>
+    </main>
   </div>
 </template>
 

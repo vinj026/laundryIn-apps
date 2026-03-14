@@ -181,8 +181,10 @@ watchEffect(() => {
   if (error.value) {
     const status = error.value?.statusCode || error.value?.status || (error.value?.data as any)?.statusCode
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError('Gagal memuat data outlet')
@@ -308,8 +310,10 @@ const submitForm = async () => {
   } catch (err: any) {
     const status = err?.statusCode || err?.status || err?.response?.status
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError(err?.data?.message || 'Gagal menyimpan outlet')
@@ -338,8 +342,10 @@ const confirmDelete = async () => {
   } catch (err: any) {
     const status = err?.statusCode || err?.status || err?.response?.status
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError('Gagal menghapus outlet, coba lagi')

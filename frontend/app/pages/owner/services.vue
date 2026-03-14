@@ -326,8 +326,10 @@ const submitForm = async () => {
   } catch (err: any) {
     const status = err?.statusCode || err?.status || err?.response?.status
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError(err?.data?.message || 'Gagal menyimpan service')
@@ -356,8 +358,10 @@ const confirmDelete = async () => {
   } catch (err: any) {
     const status = err?.statusCode || err?.status || err?.response?.status
     if (status === 401) {
-      toastError('Sesi kamu habis, silakan login ulang')
-      authStore.logout()
+      if (authStore.token) {
+        toastError('Sesi kamu habis, silakan login ulang')
+        authStore.logout()
+      }
       router.push('/owner/login')
     } else {
       toastError('Gagal menghapus service, coba lagi')

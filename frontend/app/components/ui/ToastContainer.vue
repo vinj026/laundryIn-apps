@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-20 right-4 z-[9999] flex flex-col gap-2">
+    <div class="fixed bottom-20 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
       <TransitionGroup name="toast">
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="toast-item"
+          class="toast-item pointer-events-auto"
           :class="{
             'toast-success': toast.type === 'success',
             'toast-error': toast.type === 'error',
@@ -15,7 +15,15 @@
           <span class="material-symbols-outlined text-base">
             {{ toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info' }}
           </span>
-          <span class="text-sm font-medium">{{ toast.message }}</span>
+          <div class="flex-1 min-w-0 pr-1">
+            <span class="text-sm font-medium">{{ toast.message }}</span>
+          </div>
+          <button 
+            @click="remove(toast.id)"
+            class="h-6 w-6 rounded-lg hover:bg-black/5 flex items-center justify-center transition-colors shrink-0"
+          >
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
         </div>
       </TransitionGroup>
     </div>
@@ -23,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-const { toasts } = useToast()
+const { toasts, remove } = useToast()
 </script>
 
 <style scoped>
