@@ -163,12 +163,12 @@ const register = async () => {
 
     if (status === 409 || apiMsg.includes('sudah terdaftar')) {
       toastError('Nomor HP sudah terdaftar, silakan login')
-    } else if (status === 400 && (apiMsg.includes('lemah') || apiMsg.includes('huruf besar'))) {
+    } else if (status === 400 && (apiMsg.includes('lemah') || apiMsg.includes('huruf besar') || apiMsg.includes('angka'))) {
       toastError('Password harus mengandung huruf besar, huruf kecil, dan angka')
     } else if (status === 429) {
       toastError('Terlalu banyak percobaan, coba lagi beberapa saat')
     } else {
-      toastError('Terjadi kesalahan, coba lagi')
+      toastError(err?.data?.message || 'Terjadi kesalahan, coba lagi')
     }
   } finally {
     loading.value = false

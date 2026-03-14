@@ -51,6 +51,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			utils.ErrorResponse(c, http.StatusConflict, err.Error(), err.Error())
 			return
 		}
+		// Log external error for cloud debugging (Railway)
+		fmt.Printf("🔴 REGISTRATION ERROR: %v\n", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Terjadi kesalahan internal", err.Error())
 		return
 	}
