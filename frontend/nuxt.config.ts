@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // Use environment variables for production, fallback to localhost for development
+      // We force /api as default so the proxy in routeRules is always used
       apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || '/api',
       wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080/api/v1/ws/connect'
     }
@@ -13,11 +14,10 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
-  // SSR Proxy is only needed for local dev to avoid CORS. 
-  // In production, we hit the API directly via useApiFetch or through the proxy.
+  // Nuxt Proxy: Standardizing on SSR Proxy for production to handle /api/v1 mapping and avoid CORS.
   routeRules: {
     '/api/**': {
-      proxy: (process.env.BACKEND_URL || 'http://localhost:8080') + '/api/v1/**'
+      proxy: (process.env.BACKEND_URL || 'http://localhost:8080').replace(/\/+$/, '') + '/api/v1/**'
     }
   },
   css: ['~/assets/css/main.css'],
