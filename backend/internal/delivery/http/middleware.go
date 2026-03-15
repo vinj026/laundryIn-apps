@@ -145,8 +145,8 @@ func RateLimiter() gin.HandlerFunc {
 		mu.Lock()
 		v, exists := visitors[ip]
 		if !exists {
-			// 1 token per second, burst of 60 = ~60 requests/minute max
-			limiter := rate.NewLimiter(1, 60)
+			// 1.66 token per second, burst of 100 = ~100 requests/minute max
+			limiter := rate.NewLimiter(1.66, 100)
 			visitors[ip] = &visitor{limiter: limiter, lastSeen: time.Now()}
 			v = visitors[ip]
 		}
@@ -154,6 +154,7 @@ func RateLimiter() gin.HandlerFunc {
 		mu.Unlock()
 
 		if !v.limiter.Allow() {
+			fmt.Printf("⚠️  RATE LIMIT EXCEEDED for IP: %s\n", ip)
 			utils.ErrorResponse(c, http.StatusTooManyRequests, "Terlalu banyak request, silakan coba lagi nanti", nil)
 			c.Abort()
 			return
@@ -177,36 +178,45 @@ func SecurityHeaders() gin.HandlerFunc {
 	}
 }
 // CORSMiddleware handles Cross-Origin Resource Sharing.
-// Fix BUG-005: Restrict allowed origins for security.
+// Dynamically allowed origins from ALLOWED_ORIGINS environment variable.
 func CORSMiddleware() gin.HandlerFunc {
-	allowedOrigins := map[string]bool{
-		"https://laundryin.vercel.app":     true,
-		"https://www.laundryin.vercel.app": true,
-		"http://localhost:3000":            true,
-		"http://localhost:3001":            true,
+	// Pre-parse allowed origins for performance
+	allowedOriginsStr := os.Getenv("ALLOWED_ORIGINS")
+	allowedOrigins := make(map[string]bool)
+
+	if allowedOriginsStr != "" {
+		origins := strings.Split(allowedOriginsStr, ",")
+		for _, o := range origins {
+			allowedOrigins[strings.TrimSpace(o)] = true
+		}
+	} else {
+		// Sensible defaults for development
+		allowedOrigins["http://localhost:3000"] = true
+		allowedOrigins["http://localhost:3001"] = true
 	}
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		isVercelSubdomain := strings.HasSuffix(origin, ".vercel.app")
 
-		// Check if origin is allowed
-		if origin != "" && !allowedOrigins[origin] && !isVercelSubdomain {
-			// For production, reject unknown origins
-			if os.Getenv("GIN_MODE") == "release" {
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-			// In development, we can be more lenient or just pick one
+		// Check if origin is allowed by ENV list or is a Vercel/Railway preview
+		isVercelSubdomain := strings.HasSuffix(origin, ".vercel.app")
+		isRailwaySubdomain := strings.HasSuffix(origin, ".up.railway.app")
+
+		isAllowed := allowedOrigins[origin] || isVercelSubdomain || isRailwaySubdomain
+
+		// For production mode, be strict
+		if origin != "" && !isAllowed && os.Getenv("GIN_MODE") == "release" {
+			fmt.Printf("❌ CORS REJECTED: Origin '%s' is not in ALLOWED_ORIGINS\n", origin)
+			c.AbortWithStatus(http.StatusForbidden)
+			return
 		}
 
-		// If it's a known, valid origin, or a vercel subdomain, set it. 
-		// Otherwise fallback to wildcard for local dev
+		// Set CORS headers
 		effectiveOrigin := origin
 		if effectiveOrigin == "" {
 			effectiveOrigin = "*"
-		} else if !allowedOrigins[origin] && !isVercelSubdomain {
-			effectiveOrigin = "*" // Local dev fallback
+		} else if !isAllowed {
+			effectiveOrigin = "*" // Fallback for dev
 		}
 
 		c.Header("Access-Control-Allow-Origin", effectiveOrigin)
