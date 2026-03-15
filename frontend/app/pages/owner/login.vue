@@ -113,13 +113,18 @@ const formattedPhone = computed(() => {
 })
 
 const login = async () => {
+  console.log('👑 Owner login attempt:', {
+    phone: form.value.phone.trim(),
+    formattedPhone: formattedPhone.value
+  })
+
   if (!form.value.phone.trim()) { toastError('Nomor HP harus diisi'); return }
   if (form.value.password.length < 8) { toastError('Password minimal 8 karakter'); return }
 
   loading.value = true
 
   try {
-    const res = await useApiRaw<{
+    const res = await $fetch<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -131,6 +136,7 @@ const login = async () => {
       }
     })
 
+    console.log('✅ Owner login success:', res)
     if (res.data.user.role !== 'owner') {
       toastError('Akun ini bukan akun owner')
       return
@@ -140,14 +146,24 @@ const login = async () => {
     router.push('/owner')
 
   } catch (err: any) {
+    console.error('🔴 OWNER_LOGIN_ERROR:', err)
+    console.error('Status:', err?.statusCode || err?.status)
+    console.error('Message:', err?.data?.message)
+    console.error('Response:', err?.data)
+
     const status = err?.statusCode || err?.status || err?.response?.status
+    const msg = err?.data?.message || ''
 
     if (status === 401) {
       toastError('Nomor HP atau password salah')
+    } else if (status === 403) {
+      toastError('Kamu tidak memiliki akses ke dashboard owner')
     } else if (status === 429) {
       toastError('Terlalu banyak percobaan, coba lagi beberapa saat')
+    } else if (!status || status === 0) {
+      toastError('Tidak dapat terhubung ke server, coba lagi')
     } else {
-      toastError('Terjadi kesalahan, coba lagi')
+      toastError(`Error ${status}: ${msg || 'Terjadi kesalahan'}`)
     }
   } finally {
     loading.value = false

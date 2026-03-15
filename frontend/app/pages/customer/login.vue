@@ -114,6 +114,11 @@ const formattedPhone = computed(() => {
 })
 
 const login = async () => {
+  console.log('🔑 Login attempt:', {
+    phone: form.value.phone.trim(),
+    formattedPhone: formattedPhone.value
+  })
+
   if (!form.value.phone.trim()) {
     toastError('Nomor HP harus diisi')
     return
@@ -125,7 +130,7 @@ const login = async () => {
 
   loading.value = true
   try {
-    const res = await useApiRaw<{
+    const res = await $fetch<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -137,20 +142,29 @@ const login = async () => {
       }
     })
 
-    // Debug — hapus setelah konfirmasi token tersimpan
+    console.log('✅ Login success:', res)
     authStore.setAuth(res.data.token, res.data.user)
     router.push(redirectTo.value)
 
   } catch (err: any) {
     console.error('🔴 LOGIN_ERROR:', err)
+    console.error('Status:', err?.statusCode || err?.status)
+    console.error('Message:', err?.data?.message)
+    console.error('Response:', err?.data)
+
     const status = err?.statusCode || err?.status || err?.response?.status
-    
+    const msg = err?.data?.message || ''
+
     if (status === 401) {
       toastError('Nomor HP atau password salah')
+    } else if (status === 400) {
+      toastError(msg || 'Data tidak valid')
     } else if (status === 429) {
       toastError('Terlalu banyak percobaan, coba lagi beberapa saat')
+    } else if (!status || status === 0) {
+      toastError('Tidak dapat terhubung ke server, coba lagi')
     } else {
-      toastError('Terjadi kesalahan, coba lagi')
+      toastError(`Error ${status}: ${msg || 'Terjadi kesalahan'}`)
     }
   } finally {
     loading.value = false

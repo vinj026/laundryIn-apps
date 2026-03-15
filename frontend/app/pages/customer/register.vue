@@ -131,6 +131,12 @@ const formattedPhone = computed(() => {
 })
 
 const register = async () => {
+  console.log('📝 Register attempt:', {
+    name: form.value.name.trim(),
+    phone: form.value.phone.trim(),
+    formattedPhone: formattedPhone.value
+  })
+
   if (!form.value.name.trim()) { toastError('Nama harus diisi'); return }
   if (!form.value.phone.trim()) { toastError('Nomor HP harus diisi'); return }
   if (form.value.password.length < 8) { toastError('Password minimal 8 karakter'); return }
@@ -140,7 +146,7 @@ const register = async () => {
 
   loading.value = true
   try {
-    const res = await useApiRaw<{
+    const res = await $fetch<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -154,22 +160,33 @@ const register = async () => {
       }
     })
 
+    console.log('✅ Register success:', res)
     authStore.setAuth(res.data.token, res.data.user)
     router.push('/customer')
 
   } catch (err: any) {
     console.error('🔴 REGISTER_ERROR:', err)
+    console.error('Status:', err?.statusCode || err?.status)
+    console.error('Message:', err?.data?.message)
+    console.error('Response:', err?.data)
+
     const status = err?.statusCode || err?.status || err?.response?.status
     const apiMsg = err?.data?.message || ''
 
     if (status === 409 || apiMsg.includes('sudah terdaftar')) {
       toastError('Nomor HP sudah terdaftar, silakan login')
-    } else if (status === 400 && (apiMsg.includes('lemah') || apiMsg.includes('huruf besar') || apiMsg.includes('angka'))) {
-      toastError('Password harus mengandung huruf besar, huruf kecil, dan angka')
+    } else if (status === 400) {
+      if (apiMsg.includes('lemah') || apiMsg.includes('huruf besar') || apiMsg.includes('angka')) {
+        toastError('Password harus mengandung huruf besar, huruf kecil, dan angka')
+      } else {
+        toastError(apiMsg || 'Data tidak valid')
+      }
     } else if (status === 429) {
       toastError('Terlalu banyak percobaan, coba lagi beberapa saat')
+    } else if (!status || status === 0) {
+      toastError('Tidak dapat terhubung ke server, coba lagi')
     } else {
-      toastError(err?.data?.message || 'Terjadi kesalahan, coba lagi')
+      toastError(`Error ${status}: ${apiMsg || 'Terjadi kesalahan'}`)
     }
   } finally {
     loading.value = false
