@@ -7,7 +7,7 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://laundryin-apps-production.up.railway.app/api/v1/:path*"
+            "destination": "https://laundryin-apps-production-ebe2.up.railway.app/api/v1/:path*"
         }
     ],
     "headers": [

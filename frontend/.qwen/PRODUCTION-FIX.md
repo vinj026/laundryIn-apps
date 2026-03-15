@@ -62,9 +62,9 @@ Composable `useApiFetch` dan `useApiRaw` sudah ada dan berfungsi dengan benar.
 
 | Variable | Value | Environment |
 |----------|-------|-------------|
-| `NUXT_PUBLIC_API_BASE_URL` | `https://laundryin-apps-production.up.railway.app/api/v1` | Production |
-| `NUXT_PUBLIC_WS_BASE_URL` | `wss://laundryin-apps-production.up.railway.app/api/v1/ws/connect` | Production |
-| `BACKEND_URL` | `https://laundryin-apps-production.up.railway.app` | Production |
+| `NUXT_PUBLIC_API_BASE_URL` | `https://laundryin-apps-production-ebe2.up.railway.app/api/v1` | Production |
+| `NUXT_PUBLIC_WS_BASE_URL` | `wss://laundryin-apps-production-ebe2.up.railway.app/api/v1/ws/connect` | Production |
+| `BACKEND_URL` | `https://laundryin-apps-production-ebe2.up.railway.app` | Production |
 
 3. **Redeploy project** untuk menerapkan perubahan
 
@@ -124,7 +124,7 @@ npm run dev
 ```bash
 # 1. Cek environment variables di Vercel Dashboard
 # 2. Test backend langsung:
-curl https://laundryin-apps-production.up.railway.app/ping
+curl https://laundryin-apps-production-ebe2.up.railway.app/ping
 
 # 3. Cek browser console untuk CORS errors
 ```
@@ -138,7 +138,7 @@ curl https://laundryin-apps-production.up.railway.app/ping
 **Solusi:**
 ```bash
 # Test endpoint langsung ke Railway:
-curl https://laundryin-apps-production.up.railway.app/api/v1/public/outlets
+curl https://laundryin-apps-production-ebe2.up.railway.app/api/v1/public/outlets
 
 # Cek network tab di browser DevTools
 # Lihat request URL yang sebenarnya
