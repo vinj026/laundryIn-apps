@@ -3,11 +3,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   runtimeConfig: {
     public: {
-      // Use HTTPS/WSS for production, fallback to localhost for development
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL ||
-        (process.env.VERCEL ? 'https://laundryin-backend-production.up.railway.app/api/v1' : 'http://localhost:8080/api/v1'),
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL ||
-        (process.env.VERCEL ? 'wss://laundryin-backend-production.up.railway.app/api/v1/ws/connect' : 'ws://localhost:8080/api/v1/ws/connect')
+      // Use environment variables for production, fallback to localhost for development
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || '/api',
+      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080/api/v1/ws/connect'
     }
   },
   devtools: { enabled: true },
@@ -16,9 +14,11 @@ export default defineNuxtConfig({
   },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
   // SSR Proxy is only needed for local dev to avoid CORS. 
-  // In production, we hit the API directly via useApiFetch.
-  routeRules: process.env.VERCEL ? {} : {
-    '/api/**': { proxy: 'http://localhost:8080/api/v1/**' }
+  // In production, we hit the API directly via useApiFetch or through the proxy.
+  routeRules: {
+    '/api/**': {
+      proxy: `${process.env.BACKEND_URL || 'http://localhost:8080'}/api/v1/**`
+    }
   },
   css: ['~/assets/css/main.css'],
   app: {

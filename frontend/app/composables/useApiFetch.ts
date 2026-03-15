@@ -8,9 +8,12 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
     const needsAuth = options.authenticated !== false
 
     // Map internal /api paths to actual base URL if provided
-    const actualPath = String(path).startsWith('/api')
-        ? String(path).replace('/api', '')
-        : path
+    // If apiBase is just "/api", we don't want to replace /api as it IS the prefix.
+    // However, if we hit the proxy, we usually send the relative part.
+    const p = typeof path === 'function' ? path() : path
+    const actualPath = p.startsWith('/api') && config.public.apiBase !== '/api'
+        ? p.replace('/api', '')
+        : p
 
     const fetchOptions = {
         baseURL: config.public.apiBase,
@@ -50,7 +53,11 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
     const authStore = useAuthStore()
 
     const needsAuth = options.authenticated !== false
-    const actualPath = path.startsWith('/api') ? path.replace('/api', '') : path
+
+    // If apiBase is "/api", we keep the path as is if it starts with /api
+    const actualPath = path.startsWith('/api') && config.public.apiBase !== '/api'
+        ? path.replace('/api', '')
+        : path
 
     if (needsAuth && !authStore.token) {
         return Promise.reject(new Error('Authentication required'))
