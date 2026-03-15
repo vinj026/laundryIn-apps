@@ -3,5 +3,30 @@
     "devCommand": "npm run dev",
     "installCommand": "npm install",
     "framework": "nuxtjs",
-    "outputDirectory": ".output"
+    "outputDirectory": ".output",
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "https://laundryin-apps-production.up.railway.app/api/v1/:path*"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/api/:path*",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "https://laundryin.vercel.app"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Origin, Content-Type, Accept, Authorization"
+                }
+            ]
+        }
+    ]
 }
