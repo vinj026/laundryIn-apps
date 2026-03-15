@@ -16,7 +16,7 @@
             "headers": [
                 {
                     "key": "Access-Control-Allow-Origin",
-                    "value": "https://laundryin.vercel.app"
+                    "value": "https://laundry-in-apps.vercel.app"
                 },
                 {
                     "key": "Access-Control-Allow-Methods",
