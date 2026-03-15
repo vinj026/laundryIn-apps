@@ -146,7 +146,7 @@ const register = async () => {
 
   loading.value = true
   try {
-    const res = await $fetch<{
+    const res = await useApiRaw<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -160,7 +160,6 @@ const register = async () => {
       }
     })
 
-    console.log('✅ Register success:', res)
     authStore.setAuth(res.data.token, res.data.user)
     router.push('/customer')
 

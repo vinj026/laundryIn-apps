@@ -130,7 +130,7 @@ const login = async () => {
 
   loading.value = true
   try {
-    const res = await $fetch<{
+    const res = await useApiRaw<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -142,7 +142,6 @@ const login = async () => {
       }
     })
 
-    console.log('✅ Login success:', res)
     authStore.setAuth(res.data.token, res.data.user)
     router.push(redirectTo.value)
 

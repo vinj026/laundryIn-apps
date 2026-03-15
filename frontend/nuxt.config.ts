@@ -5,8 +5,8 @@ export default defineNuxtConfig({
     public: {
       // Use environment variables for production, fallback to localhost for development
       // We force /api as default so the proxy in routeRules is always used
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || '/api',
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080/api/v1/ws/connect'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://laundryin-apps-production.up.railway.app/api/v1',
+      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'wss://laundryin-apps-production.up.railway.app/api/v1/ws/connect'
     }
   },
   devtools: { enabled: true },

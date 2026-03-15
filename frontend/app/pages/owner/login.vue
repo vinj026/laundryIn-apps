@@ -124,7 +124,7 @@ const login = async () => {
   loading.value = true
 
   try {
-    const res = await $fetch<{
+    const res = await useApiRaw<{
       status: string
       message: string
       data: { token: string, user: any }
@@ -136,7 +136,6 @@ const login = async () => {
       }
     })
 
-    console.log('✅ Owner login success:', res)
     if (res.data.user.role !== 'owner') {
       toastError('Akun ini bukan akun owner')
       return
