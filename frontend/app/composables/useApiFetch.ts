@@ -11,9 +11,18 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
     // If apiBase is just "/api", we don't want to replace /api as it IS the prefix.
     // However, if we hit the proxy, we usually send the relative part.
     const p = typeof path === 'function' ? path() : path
-    const actualPath = p.startsWith('/api') && config.public.apiBase !== '/api'
-        ? p.replace('/api', '')
-        : p
+
+    // Robust path mapping:
+    // 1. If hitting proxy (apiBase is '/api'), keep /api prefix if it's there
+    // 2. If hitting full URL, and path starts with /api, we map it to the versioned endpoint
+    let actualPath = p
+    if (config.public.apiBase !== '/api') {
+        if (p.startsWith('/api/')) {
+            actualPath = p.slice(5) // Remove '/api/'
+        } else if (p.startsWith('/api')) {
+            actualPath = p.slice(4) // Remove '/api'
+        }
+    }
 
     const fetchOptions = {
         baseURL: config.public.apiBase,
@@ -35,6 +44,8 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
 
     const originalOnResponseError = fetchOptions.onResponseError
     fetchOptions.onResponseError = async (context: any) => {
+        console.error(`[API FETCH ERROR] ${context.request} -> ${context.response.status}`, context.response._data)
+
         if (context.response.status === 401 && authStore.token) {
             authStore.logout()
             toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
@@ -55,9 +66,14 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
     const needsAuth = options.authenticated !== false
 
     // If apiBase is "/api", we keep the path as is if it starts with /api
-    const actualPath = path.startsWith('/api') && config.public.apiBase !== '/api'
-        ? path.replace('/api', '')
-        : path
+    let actualPath = path
+    if (config.public.apiBase !== '/api') {
+        if (path.startsWith('/api/')) {
+            actualPath = path.slice(5)
+        } else if (path.startsWith('/api')) {
+            actualPath = path.slice(4)
+        }
+    }
 
     if (needsAuth && !authStore.token) {
         return Promise.reject(new Error('Authentication required'))
@@ -71,11 +87,14 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
             ...options.headers,
         },
         onResponseError: async (context) => {
+            console.error(`[API RAW ERROR] ${context.request} -> ${context.response.status}`, context.response._data)
+
             if (context.response.status === 401 && authStore.token) {
                 authStore.logout()
                 const { error: toastError } = useToast()
                 toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
-                useRouter().push('/customer/login')
+                const router = useRouter()
+                router.push('/customer/login')
             }
             if (options.onResponseError) {
                 await options.onResponseError(context)

@@ -17,7 +17,7 @@ export default defineNuxtConfig({
   // In production, we hit the API directly via useApiFetch or through the proxy.
   routeRules: {
     '/api/**': {
-      proxy: `${process.env.BACKEND_URL || 'http://localhost:8080'}/api/v1/**`
+      proxy: (process.env.BACKEND_URL || 'http://localhost:8080') + '/api/v1/**'
     }
   },
   css: ['~/assets/css/main.css'],
