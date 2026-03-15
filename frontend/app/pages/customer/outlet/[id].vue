@@ -331,12 +331,15 @@ const form = ref({
 
 const showOutletModal = ref(false)
 
-const { data: outletWrapper, pending: pendingOutlet, refresh: refreshOutlet } = await useApiFetch<{ data: Outlet }>(`/api/public/outlets/${outletId}`)
+const { data: outletWrapper, pending: pendingOutlet, refresh: refreshOutlet } = await useApiFetch<{ data: Outlet }>(`/api/public/outlets/${outletId}`, {
+  authenticated: false
+})
 const outlet = computed(() => outletWrapper.value?.data)
 
 const { data: allOutletsResponse, pending: pendingAllOutlets } = await useApiFetch<ApiResponse<PaginatedResponse<Outlet[]>>>('/api/public/outlets', {
   lazy: true,
-  server: false
+  server: false,
+  authenticated: false
 })
 const allOutlets = computed(() => allOutletsResponse.value?.data?.data || [])
 
@@ -349,7 +352,9 @@ const changeOutlet = (newId: string) => {
   router.push(`/customer/outlet/${newId}`)
 }
 
-const { data: services, pending: pendingServices, refresh: refreshServices } = await useApiFetch<{ data: Service[] }>(`/api/public/outlets/${outletId}/services`)
+const { data: services, pending: pendingServices, refresh: refreshServices } = await useApiFetch<{ data: Service[] }>(`/api/public/outlets/${outletId}/services`, {
+  authenticated: false
+})
 
 onActivated(() => {
   if (outletId) {

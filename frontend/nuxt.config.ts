@@ -3,10 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   runtimeConfig: {
     public: {
-      // Use environment variables for production, fallback to localhost for development
-      // We force /api as default so the proxy in routeRules is always used
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://laundryin-apps-production.up.railway.app/api/v1',
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'wss://laundryin-apps-production.up.railway.app/api/v1/ws/connect'
+      // Use environment variables for production, fallback to proxy/local dev
+      // Default to /api so the proxy in routeRules (and Vercel rewrite) is used
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || '/api',
+      wsBase: process.env.NUXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080/api/v1/ws/connect'
     }
   },
   devtools: { enabled: true },

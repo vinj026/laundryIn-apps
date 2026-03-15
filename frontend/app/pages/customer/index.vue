@@ -124,7 +124,8 @@ const searchQuery = ref('')
 // Use useApiFetch with server: false to force client-side only
 const { data: outletsResponse, pending, refresh } = await useApiFetch<{ data: { data: Outlet[] } }>('/api/public/outlets', {
   server: false,
-  immediate: true
+  immediate: true,
+  authenticated: false
 })
 
 const filteredOutlets = computed(() => {

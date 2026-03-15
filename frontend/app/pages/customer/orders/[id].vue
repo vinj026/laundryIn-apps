@@ -212,7 +212,9 @@ const { data: outletWrapper } = await useAsyncData<ApiResponse<Outlet> | null>(
   'customer-order-outlet',
   async () => {
     if (!order.value) return null
-    return useApiRaw<ApiResponse<Outlet>>(`/api/public/outlets/${order.value.outlet_id}`)
+    return useApiRaw<ApiResponse<Outlet>>(`/api/public/outlets/${order.value.outlet_id}`, {
+      authenticated: false
+    })
   },
   { watch: [order], server: false }
 )
