@@ -4,24 +4,33 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
     const config = useRuntimeConfig()
     const authStore = useAuthStore()
 
+    // Debug logging for production
+    if (import.meta.client) {
+        console.log('[useApiFetch] Config:', {
+            apiBase: config.public.apiBase,
+            path,
+            isProduction: config.public.apiBase?.startsWith('http')
+        })
+    }
+
     // Default to true if not explicitly false
     const needsAuth = options.authenticated !== false
 
-    // Map internal /api paths to actual base URL if provided
-    // If apiBase is just "/api", we don't want to replace /api as it IS the prefix.
-    // However, if we hit the proxy, we usually send the relative part.
     const p = typeof path === 'function' ? path() : path
 
-    // Robust path mapping:
-    // 1. If hitting proxy (apiBase is '/api'), keep /api prefix if it's there
-    // 2. If hitting full URL, and path starts with /api, we map it to the versioned endpoint
+    // Path mapping for production
+    // If apiBase is a full URL (production), strip /api prefix
     let actualPath = p
-    if (config.public.apiBase !== '/api') {
+    if (config.public.apiBase && config.public.apiBase !== '/api' && config.public.apiBase.startsWith('http')) {
         if (p.startsWith('/api/')) {
             actualPath = p.slice(5) // Remove '/api/'
-        } else if (p.startsWith('/api')) {
-            actualPath = p.slice(4) // Remove '/api'
+        } else if (p === '/api') {
+            actualPath = ''
         }
+    }
+
+    if (import.meta.client) {
+        console.log('[useApiFetch] After mapping:', { actualPath, baseURL: config.public.apiBase })
     }
 
     const fetchOptions = {
@@ -63,16 +72,24 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
     const config = useRuntimeConfig()
     const authStore = useAuthStore()
 
+    if (import.meta.client) {
+        console.log('[useApiRaw] Called with:', { path, apiBase: config.public.apiBase })
+    }
+
     const needsAuth = options.authenticated !== false
 
-    // If apiBase is "/api", we keep the path as is if it starts with /api
+    // Path mapping for production
     let actualPath = path
-    if (config.public.apiBase !== '/api') {
+    if (config.public.apiBase && config.public.apiBase !== '/api' && config.public.apiBase.startsWith('http')) {
         if (path.startsWith('/api/')) {
             actualPath = path.slice(5)
-        } else if (path.startsWith('/api')) {
-            actualPath = path.slice(4)
+        } else if (path === '/api') {
+            actualPath = ''
         }
+    }
+
+    if (import.meta.client) {
+        console.log('[useApiRaw] After mapping:', { actualPath, baseURL: config.public.apiBase })
     }
 
     if (needsAuth && !authStore.token) {
