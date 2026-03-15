@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onActivated } from 'vue'
+import { ref, computed, onActivated, onMounted, watch } from 'vue'
 
 definePageMeta({
   layout: 'customer'
@@ -119,11 +119,12 @@ interface Outlet {
   is_active: boolean
 }
 
-const { data: outletsResponse, pending, refresh } = await useApiFetch<{ data: { data: Outlet[] } }>('/api/public/outlets')
 const searchQuery = ref('')
 
-onActivated(() => {
-  refresh()
+// Use useApiFetch with server: false to force client-side only
+const { data: outletsResponse, pending, refresh } = await useApiFetch<{ data: { data: Outlet[] } }>('/api/public/outlets', {
+  server: false,
+  immediate: true
 })
 
 const filteredOutlets = computed(() => {
@@ -132,5 +133,14 @@ const filteredOutlets = computed(() => {
   return outletsResponse.value.data.data.filter((o: Outlet) =>
     o.name.toLowerCase().includes(q) || o.address.toLowerCase().includes(q)
   )
+})
+
+onMounted(() => {
+  // Force refresh on mount
+  refresh()
+})
+
+onActivated(() => {
+  refresh()
 })
 </script>
