@@ -27,20 +27,38 @@ func NewNotificationHandler(notifUsecase usecase.NotificationUsecase, hub *webso
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// Fix BUG-006: Whitelist origins for WS
 		origin := r.Header.Get("Origin")
 		if origin == "" {
 			return true // Allow mobile/client directly
 		}
 
-		allowedOrigins := map[string]bool{
-			"https://laundryin.vercel.app":     true,
-			"https://www.laundryin.vercel.app": true,
-			"http://localhost:3000":            true,
-			"http://localhost:3001":            true,
+		// Use dynamic validation similar to CORSMiddleware
+		allowedOriginsStr := os.Getenv("ALLOWED_ORIGINS")
+		isVercelSubdomain := strings.HasSuffix(origin, ".vercel.app")
+		isRailwaySubdomain := strings.HasSuffix(origin, ".up.railway.app")
+
+		if isVercelSubdomain || isRailwaySubdomain {
+			return true
 		}
 
-		return allowedOrigins[origin] || strings.HasSuffix(origin, ".vercel.app")
+		if allowedOriginsStr != "" {
+			origins := strings.Split(allowedOriginsStr, ",")
+			for _, o := range origins {
+				if strings.TrimSpace(o) == origin {
+					return true
+				}
+			}
+		}
+
+		// Fallback for localhost in non-release mode
+		if os.Getenv("GIN_MODE") != "release" {
+			if strings.HasPrefix(origin, "http://localhost") {
+				return true
+			}
+		}
+
+		fmt.Printf("❌ WS ORIGIN REJECTED: Origin '%s' is not allowed\n", origin)
+		return false
 	},
 }
 
