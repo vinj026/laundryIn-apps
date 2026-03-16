@@ -50,6 +50,12 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
     // Fix BUG-007: Handle 401 Unauthorized globally
     const { error: toastError } = useToast()
     const router = useRouter()
+    const resolveLoginPath = () => {
+        const role = authStore.user?.role
+        if (role === 'owner') return '/owner/login'
+        if (role === 'customer') return '/customer/login'
+        return router.currentRoute.value.path.startsWith('/owner') ? '/owner/login' : '/customer/login'
+    }
 
     const originalOnResponseError = fetchOptions.onResponseError
     fetchOptions.onResponseError = async (context: any) => {
@@ -58,7 +64,7 @@ export const useApiFetch = (path: string | (() => string), options: any = {}) =>
         if (context.response.status === 401 && authStore.token) {
             authStore.logout()
             toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
-            router.push('/customer/login')
+            router.push(resolveLoginPath())
         }
         if (originalOnResponseError) {
             await originalOnResponseError(context)
@@ -111,7 +117,15 @@ export const useApiRaw = <T>(path: string, options: any = {}): Promise<T> => {
                 const { error: toastError } = useToast()
                 toastError('Sesi kamu telah kadaluarsa, silakan login ulang')
                 const router = useRouter()
-                router.push('/customer/login')
+                const role = authStore.user?.role
+                const loginPath = role === 'owner'
+                    ? '/owner/login'
+                    : role === 'customer'
+                        ? '/customer/login'
+                        : router.currentRoute.value.path.startsWith('/owner')
+                            ? '/owner/login'
+                            : '/customer/login'
+                router.push(loginPath)
             }
             if (options.onResponseError) {
                 await options.onResponseError(context)
