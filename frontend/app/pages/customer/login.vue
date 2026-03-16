@@ -136,6 +136,7 @@ const login = async () => {
       data: { token: string, user: any }
     }>('/api/auth/login', {
       method: 'POST',
+      authenticated: false,
       body: {
         phone: formattedPhone.value,
         password: form.value.password

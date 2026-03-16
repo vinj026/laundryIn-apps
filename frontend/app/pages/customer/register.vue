@@ -152,6 +152,7 @@ const register = async () => {
       data: { token: string, user: any }
     }>('/api/auth/register', {
       method: 'POST',
+      authenticated: false,
       body: {
         name: form.value.name.trim(),
         phone: formattedPhone.value,

@@ -117,6 +117,57 @@ export default defineNuxtConfig({
 
 ---
 
+## Section 1.4 — Troubleshooting: Data Public Tidak Muncul
+
+Kasus umum: endpoint public (contoh `/api/public/outlets`) bisa diakses manual, tapi UI kosong.
+
+### Akar Masalah #1 — Request Public Terdeteksi Sebagai Auth
+
+`useApiFetch` **default** menganggap request butuh token. Jika user belum login, request tidak jalan sama sekali.
+
+**Gejala:**
+- Network tab tidak menunjukkan request ke `/api/public/*`
+- Tidak ada error API karena request tidak dikirim
+
+**Perbaikan:**
+Tambahkan opsi `authenticated: false` pada semua call public.
+
+Contoh (sudah diterapkan):
+```ts
+await useApiFetch('/api/public/outlets', {
+  server: false,
+  immediate: true,
+  authenticated: false
+})
+```
+
+### Akar Masalah #2 — `apiBase` Salah di Production
+
+Jika `NUXT_PUBLIC_API_BASE_URL` tidak diset di Vercel, default harus `/api` agar rewrite/proxy dipakai.
+Jika default mengarah ke host backend yang tidak aktif, request akan gagal atau CORS error.
+
+**Perbaikan:**
+Set environment di Vercel:
+
+```
+NUXT_PUBLIC_API_BASE_URL=/api
+BACKEND_URL=https://laundryin-apps-production-ebe2.up.railway.app
+```
+
+Opsional untuk WebSocket:
+```
+NUXT_PUBLIC_WS_BASE_URL=wss://laundryin-apps-production-ebe2.up.railway.app/api/v1/ws/connect
+```
+
+### Checklist Debug Cepat
+
+1. Buka DevTools → Network, pastikan request `/api/public/outlets` benar-benar terkirim.
+2. Pastikan request menuju origin Vercel (`/api/...`) bukan langsung ke Railway (kalau `apiBase=/api`).
+3. Kalau request tidak muncul, pastikan `authenticated: false` ada di call public.
+4. Kalau request muncul tapi gagal, cek status code dan CORS di response.
+
+---
+
 ## Section 2 — Stores (State Management)
 
 ### 2.1 auth.ts
