@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"laundryin/internal/database"
 	handler "laundryin/internal/delivery/http"
@@ -71,8 +72,29 @@ func main() {
 
 	r := gin.Default()
 
-	// Railway/Cloudflare/Vercel proxies are usually fine to trust for header mapping in this context
-	_ = r.SetTrustedProxies(nil)
+	// Trusted proxies: set TRUSTED_PROXIES="ip1,ip2,..." in production
+	trustedProxiesEnv := strings.TrimSpace(os.Getenv("TRUSTED_PROXIES"))
+	if trustedProxiesEnv != "" {
+		parts := strings.Split(trustedProxiesEnv, ",")
+		trusted := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if v := strings.TrimSpace(p); v != "" {
+				trusted = append(trusted, v)
+			}
+		}
+		if err := r.SetTrustedProxies(trusted); err != nil {
+			log.Printf("⚠️  Failed to set trusted proxies: %v", err)
+		}
+	} else if os.Getenv("GIN_MODE") == "release" {
+		// Default to trusting none in production to prevent spoofed client IPs
+		if err := r.SetTrustedProxies([]string{}); err != nil {
+			log.Printf("⚠️  Failed to set trusted proxies: %v", err)
+		}
+		log.Printf("⚠️  TRUSTED_PROXIES not set; X-Forwarded-For will not be trusted")
+	} else {
+		// Dev convenience
+		_ = r.SetTrustedProxies(nil)
+	}
 
 	// Global security middleware
 	r.Use(handler.CORSMiddleware())
