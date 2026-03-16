@@ -372,14 +372,22 @@ const confirmDelete = async () => {
   }
 }
 
+const onKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    if (showModal.value) closeModal()
+    if (showDeleteModal.value) showDeleteModal.value = false
+  }
+}
+
 onMounted(() => {
   if (import.meta.client) {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (showModal.value) closeModal()
-        if (showDeleteModal.value) showDeleteModal.value = false
-      }
-    })
+    window.addEventListener('keydown', onKeydown)
+  }
+})
+
+onUnmounted(() => {
+  if (import.meta.client) {
+    window.removeEventListener('keydown', onKeydown)
   }
 })
 

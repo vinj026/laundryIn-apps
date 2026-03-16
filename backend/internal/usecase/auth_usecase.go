@@ -54,7 +54,10 @@ func (u *authUsecase) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	}
 
 	// Check for duplicate phone number
-	existingUser, _ := u.userRepo.FindByPhone(ctx, req.Phone)
+	existingUser, err := u.userRepo.FindByPhone(ctx, req.Phone)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("gagal memeriksa nomor HP")
+	}
 	if existingUser != nil {
 		return nil, ErrDuplicatePhone
 	}

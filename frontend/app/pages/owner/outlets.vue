@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import type { ApiResponse, PaginatedResponse } from '~/types/api'
@@ -232,14 +232,22 @@ const closeModal = () => {
   formErrors.value = { name: '', address: '', phone: '' }
 }
 
+const onKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    if (showModal.value) closeModal()
+    if (showDeleteModal.value) showDeleteModal.value = false
+  }
+}
+
 onMounted(() => {
   if (import.meta.client) {
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (showModal.value) closeModal()
-        if (showDeleteModal.value) showDeleteModal.value = false
-      }
-    })
+    window.addEventListener('keydown', onKeydown)
+  }
+})
+
+onUnmounted(() => {
+  if (import.meta.client) {
+    window.removeEventListener('keydown', onKeydown)
   }
 })
 
